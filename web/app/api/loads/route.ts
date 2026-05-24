@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, data: load }, { status: 201 });
   } catch (err) {
     if (err instanceof ZodError) {
-      return NextResponse.json({ success: false, error: err.errors[0].message }, { status: 400 });
+      return NextResponse.json({ success: false, error: err.issues[0].message }, { status: 400 });
     }
     return NextResponse.json({ success: false, error: 'Failed to post load' }, { status: 500 });
   }

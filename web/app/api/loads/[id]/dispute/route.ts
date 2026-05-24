@@ -34,7 +34,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ success: true, message: 'Dispute raised. Our team will review shortly.' });
   } catch (err) {
     if (err instanceof ZodError) {
-      return NextResponse.json({ success: false, error: err.errors[0].message }, { status: 400 });
+      return NextResponse.json({ success: false, error: err.issues[0].message }, { status: 400 });
     }
     return NextResponse.json({ success: false, error: 'Failed to raise dispute' }, { status: 500 });
   }

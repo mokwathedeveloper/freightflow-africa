@@ -47,7 +47,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ success: true, message: 'Status updated' });
   } catch (err) {
     if (err instanceof ZodError) {
-      return NextResponse.json({ success: false, error: err.errors[0].message }, { status: 400 });
+      return NextResponse.json({ success: false, error: err.issues[0].message }, { status: 400 });
     }
     return NextResponse.json({ success: false, error: 'Update failed' }, { status: 500 });
   }
