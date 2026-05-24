@@ -2,7 +2,7 @@
 
 import { use, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Loader2, MapPin } from 'lucide-react';
+import { ArrowLeft, Loader2, MapPin, Truck, User, Phone } from 'lucide-react';
 import Link from 'next/link';
 import { Button, buttonVariants } from '@/components/ui/button';
 import LoadStatusBadge from '@/components/ui/LoadStatusBadge';
@@ -11,10 +11,17 @@ import { formatDate, formatDateTime, cn } from '@/lib/utils';
 import api from '@/lib/api';
 import type { Load } from '@/types';
 
-const TIMELINE_STEPS = ['POSTED', 'ACCEPTED', 'PICKED_UP', 'IN_TRANSIT', 'AWAITING_CONFIRMATION', 'DELIVERED'] as const;
+const TIMELINE_STEPS = [
+  { key: 'POSTED',                 label: 'Load Posted' },
+  { key: 'ACCEPTED',               label: 'Accepted by Transporter' },
+  { key: 'PICKED_UP',              label: 'Cargo Picked Up' },
+  { key: 'IN_TRANSIT',             label: 'In Transit' },
+  { key: 'AWAITING_CONFIRMATION',  label: 'Awaiting Delivery Confirmation' },
+  { key: 'DELIVERED',              label: 'Delivered' },
+] as const;
 
 const STATUS_ACTIONS: Partial<Record<string, { label: string; next: string }>> = {
-  ACCEPTED: { label: 'Mark as Picked Up', next: 'PICKED_UP' },
+  ACCEPTED: { label: 'Mark as Picked Up',    next: 'PICKED_UP' },
   PICKED_UP: { label: 'Mark as In Transit', next: 'IN_TRANSIT' },
 };
 
@@ -57,7 +64,7 @@ export default function TransporterTrackPage({ params }: { params: Promise<{ loa
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="animate-spin text-muted-foreground" size={24} />
+        <Loader2 className="animate-spin text-gray-400" size={24} />
       </div>
     );
   }
@@ -65,137 +72,212 @@ export default function TransporterTrackPage({ params }: { params: Promise<{ loa
   if (!load) {
     return (
       <div className="text-center py-16">
-        <p className="text-muted-foreground">Load not found.</p>
-        <Link href="/dashboard/transporter/jobs" className={buttonVariants({ size: 'sm' }) + ' mt-4'}>Back</Link>
+        <p className="text-gray-500">Load not found.</p>
+        <Link href="/dashboard/transporter/jobs" className={`${buttonVariants({ size: 'sm' })} mt-4 inline-flex`}>
+          Back to Jobs
+        </Link>
       </div>
     );
   }
 
-  const stepIndex = TIMELINE_STEPS.indexOf(load.status as typeof TIMELINE_STEPS[number]);
+  const stepIndex = TIMELINE_STEPS.findIndex((s) => s.key === load.status);
   const nextAction = STATUS_ACTIONS[load.status];
 
+  const timestamps: Record<string, string | undefined> = {
+    POSTED:                load.createdAt,
+    ACCEPTED:              load.acceptedAt,
+    PICKED_UP:             load.pickedUpAt,
+    IN_TRANSIT:            load.inTransitAt,
+    AWAITING_CONFIRMATION: load.deliveredAt,
+    DELIVERED:             load.confirmedAt,
+  };
+
   return (
-    <div className="max-w-2xl space-y-5">
+    <div className="max-w-3xl mx-auto space-y-5">
+
+      {/* Breadcrumb */}
       <div className="flex items-center gap-3">
-        <Link href="/dashboard/transporter/jobs" className="text-muted-foreground hover:text-foreground">
+        <Link href="/dashboard/transporter/jobs" className="text-gray-400 hover:text-gray-700 transition-colors">
           <ArrowLeft size={18} />
         </Link>
-        <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-base font-semibold text-foreground">{load.shortId}</h2>
-            <LoadStatusBadge status={load.status} />
+        <div className="flex items-center gap-3">
+          <div>
+            <div className="flex items-center gap-2.5">
+              <h2 className="text-base font-semibold text-gray-900">{load.shortId}</h2>
+              <LoadStatusBadge status={load.status} />
+            </div>
+            <p className="text-xs text-gray-500 mt-0.5">{load.origin} → {load.destination}</p>
           </div>
-          <p className="text-xs text-muted-foreground">{load.origin} → {load.destination}</p>
         </div>
       </div>
 
-      {/* Timeline */}
-      <div className="bg-card rounded-xl border border-border p-5">
-        <h3 className="text-sm font-semibold text-foreground mb-4">Status Timeline</h3>
-        <div className="space-y-3">
-          {TIMELINE_STEPS.map((step, i) => {
-            const done = i <= stepIndex;
-            const current = i === stepIndex;
-            const timestamps: Record<string, string | undefined> = {
-              POSTED: load.createdAt,
-              ACCEPTED: load.acceptedAt,
-              PICKED_UP: load.pickedUpAt,
-              IN_TRANSIT: load.inTransitAt,
-              AWAITING_CONFIRMATION: load.deliveredAt,
-              DELIVERED: load.confirmedAt,
-            };
-            return (
-              <div key={step} className="flex items-start gap-3">
-                <div className={cn(
-                  'w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5',
-                  done ? 'bg-primary' : 'bg-muted border-2 border-border'
-                )}>
-                  {done && <span className="text-primary-foreground text-xs">✓</span>}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+
+        {/* Left column — timeline + load details */}
+        <div className="lg:col-span-3 space-y-5">
+
+          {/* Status Timeline */}
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
+            <h3 className="text-sm font-semibold text-gray-900 mb-5">Status Timeline</h3>
+            <div className="space-y-0">
+              {TIMELINE_STEPS.map((step, i) => {
+                const done = i <= stepIndex;
+                const current = i === stepIndex;
+                const ts = timestamps[step.key];
+                return (
+                  <div key={step.key} className="flex gap-3">
+                    <div className="flex flex-col items-center">
+                      <div className={cn(
+                        'w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-xs font-bold',
+                        done
+                          ? 'bg-[#1E3A8A] text-white'
+                          : 'bg-gray-100 border-2 border-gray-200 text-gray-400'
+                      )}>
+                        {done ? '✓' : i + 1}
+                      </div>
+                      {i < TIMELINE_STEPS.length - 1 && (
+                        <div className={cn('w-0.5 h-8', done ? 'bg-[#1E3A8A]' : 'bg-gray-200')} />
+                      )}
+                    </div>
+                    <div className="pb-4 pt-1">
+                      <p className={cn(
+                        'text-sm font-medium',
+                        current ? 'text-[#1E3A8A]' : done ? 'text-gray-900' : 'text-gray-400'
+                      )}>
+                        {step.label}
+                        {current && <span className="ml-2 text-xs bg-[#1E3A8A]/10 text-[#1E3A8A] px-1.5 py-0.5 rounded-full">Current</span>}
+                      </p>
+                      {ts && (
+                        <p className="text-xs text-gray-400 mt-0.5">{formatDateTime(ts)}</p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Load Details */}
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
+            <h3 className="text-sm font-semibold text-gray-900 mb-4">Load Details</h3>
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+              <dt className="text-gray-500">Cargo Type</dt>
+              <dd className="font-medium text-gray-900">{load.cargoType}</dd>
+              <dt className="text-gray-500">Weight</dt>
+              <dd className="font-medium text-gray-900">{load.weight} tonnes</dd>
+              <dt className="text-gray-500">Required By</dt>
+              <dd className="font-medium text-gray-900">{formatDate(load.deliveryDate)}</dd>
+              {load.preferredVehicle && (
+                <>
+                  <dt className="text-gray-500">Vehicle Type</dt>
+                  <dd className="font-medium text-gray-900">{load.preferredVehicle}</dd>
+                </>
+              )}
+              {load.lastLocation && (
+                <>
+                  <dt className="text-gray-500 flex items-center gap-1"><MapPin size={11} /> Last Location</dt>
+                  <dd className="font-medium text-gray-900">{load.lastLocation}</dd>
+                </>
+              )}
+            </dl>
+            {load.notes && (
+              <div className="mt-4 pt-4 border-t border-gray-100">
+                <p className="text-xs text-gray-500 mb-1">Notes</p>
+                <p className="text-sm text-gray-700 italic">{load.notes}</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right column — actions + shipper info */}
+        <div className="lg:col-span-2 space-y-5">
+
+          {/* Shipper info */}
+          {load.shipper && (
+            <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-5">
+              <h3 className="text-sm font-semibold text-gray-900 mb-3">Shipper</h3>
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-[#1E3A8A]/10 flex items-center justify-center">
+                  <User size={16} className="text-[#1E3A8A]" />
                 </div>
-                <div className={cn('text-sm', current ? 'font-semibold text-foreground' : done ? 'text-foreground' : 'text-muted-foreground')}>
-                  <p>{step.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())}</p>
-                  {timestamps[step] && <p className="text-xs text-muted-foreground">{formatDateTime(timestamps[step]!)}</p>}
+                <div>
+                  <p className="text-sm font-medium text-gray-900">{load.shipper.company || load.shipper.name}</p>
+                  <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+                    <Phone size={10} /> {load.shipper.phone}
+                  </p>
                 </div>
               </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Load details */}
-      <div className="bg-card rounded-xl border border-border p-5 space-y-3">
-        <h3 className="text-sm font-semibold text-foreground">Load Details</h3>
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-          <dt className="text-muted-foreground">Cargo</dt><dd className="font-medium">{load.cargoType}</dd>
-          <dt className="text-muted-foreground">Weight</dt><dd className="font-medium">{load.weight}t</dd>
-          <dt className="text-muted-foreground">Required by</dt><dd className="font-medium">{formatDate(load.deliveryDate)}</dd>
-          {load.notes && <><dt className="text-muted-foreground">Notes</dt><dd className="font-medium">{load.notes}</dd></>}
-          {load.lastLocation && (
-            <><dt className="text-muted-foreground flex items-center gap-1"><MapPin size={12} />Last checkpoint</dt><dd className="font-medium">{load.lastLocation}</dd></>
+            </div>
           )}
-        </dl>
-      </div>
 
-      {/* Shipper info */}
-      {load.shipper && (
-        <div className="bg-card rounded-xl border border-border p-5 space-y-2">
-          <h3 className="text-sm font-semibold text-foreground">Shipper</h3>
-          <p className="text-sm font-medium text-foreground">{load.shipper.company || load.shipper.name}</p>
-          <p className="text-xs text-muted-foreground">{load.shipper.phone}</p>
-        </div>
-      )}
-
-      {/* Status update actions */}
-      {nextAction && (
-        <div className="bg-card rounded-xl border border-border p-5 space-y-3">
-          <h3 className="text-sm font-semibold text-foreground">Update Status</h3>
-          <div className="space-y-1.5">
-            <label className="text-sm text-muted-foreground">Current location (optional)</label>
-            <input
-              value={locationNote}
-              onChange={(e) => setLocationNote(e.target.value)}
-              placeholder="e.g. Nakuru bypass, 50km from Nairobi"
-              className="w-full h-10 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-            />
+          {/* USSD reminder */}
+          <div className="bg-[#1E3A8A]/5 border border-[#1E3A8A]/20 rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Truck size={14} className="text-[#1E3A8A]" />
+              <p className="text-xs font-semibold text-[#1E3A8A]">No Internet? Use USSD</p>
+            </div>
+            <p className="text-xs text-gray-600">Dial <strong className="font-mono">*384*7447#</strong> from any phone to update your status.</p>
           </div>
-          <Button
-            onClick={() => statusMut.mutate({ status: nextAction.next, note: locationNote || undefined })}
-            disabled={statusMut.isPending}
-            className="w-full"
-          >
-            {statusMut.isPending ? <Loader2 className="animate-spin" size={14} /> : nextAction.label}
-          </Button>
-        </div>
-      )}
 
-      {load.status === 'IN_TRANSIT' && (
-        <div className="bg-card rounded-xl border border-border p-5 space-y-3">
-          <h3 className="text-sm font-semibold text-foreground">Report Delivery</h3>
-          <p className="text-sm text-muted-foreground">Confirm you have delivered the goods to the destination.</p>
-          <Button
-            onClick={() => deliverMut.mutate()}
-            disabled={deliverMut.isPending}
-            className="w-full"
-          >
-            {deliverMut.isPending ? <Loader2 className="animate-spin" size={14} /> : 'Report Delivered'}
-          </Button>
-        </div>
-      )}
+          {/* Status update action */}
+          {nextAction && (
+            <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-5 space-y-3">
+              <h3 className="text-sm font-semibold text-gray-900">Update Status</h3>
+              <div>
+                <label className="ff-label">Current Location <span className="text-gray-400 font-normal">(optional)</span></label>
+                <input
+                  value={locationNote}
+                  onChange={(e) => setLocationNote(e.target.value)}
+                  placeholder="e.g. Nakuru bypass, 50km from Nairobi"
+                  className="ff-input"
+                />
+              </div>
+              <Button
+                onClick={() => statusMut.mutate({ status: nextAction.next, note: locationNote || undefined })}
+                disabled={statusMut.isPending}
+                className="w-full"
+              >
+                {statusMut.isPending
+                  ? <><Loader2 className="animate-spin" size={14} /> Updating...</>
+                  : nextAction.label}
+              </Button>
+            </div>
+          )}
 
-      {load.status === 'AWAITING_CONFIRMATION' && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
-          Waiting for the shipper to confirm delivery. You&apos;ll be notified when they do.
-        </div>
-      )}
+          {load.status === 'IN_TRANSIT' && (
+            <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-5 space-y-3">
+              <h3 className="text-sm font-semibold text-gray-900">Report Delivery</h3>
+              <p className="text-sm text-gray-500">Confirm the goods have been delivered to the destination.</p>
+              <Button
+                variant="success"
+                onClick={() => deliverMut.mutate()}
+                disabled={deliverMut.isPending}
+                className="w-full"
+              >
+                {deliverMut.isPending
+                  ? <><Loader2 className="animate-spin" size={14} /> Reporting...</>
+                  : 'Report Delivered'}
+              </Button>
+            </div>
+          )}
 
-      {load.status === 'DELIVERED' && (
-        <div className="rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-700">
-          ✓ Delivery confirmed by shipper.
-          {load.rating && (
-            <p className="mt-1">Your rating for this job: <strong>{load.rating}/5 ★</strong></p>
+          {load.status === 'AWAITING_CONFIRMATION' && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
+              <strong>Waiting for confirmation</strong>
+              <p className="text-xs mt-1">The shipper needs to confirm delivery. You&apos;ll be notified via SMS.</p>
+            </div>
+          )}
+
+          {load.status === 'DELIVERED' && (
+            <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-700">
+              <strong>✓ Delivery confirmed</strong>
+              {load.rating && (
+                <p className="mt-1">Your rating: <strong>{load.rating}/5 ★</strong></p>
+              )}
+            </div>
           )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

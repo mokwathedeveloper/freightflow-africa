@@ -11,10 +11,11 @@ import { cn } from '@/lib/utils';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 import { useToastStore } from '@/store/toast.store';
+import Link from 'next/link';
 import type { User } from '@/types';
 
 const schema = z.object({
-  phone: z.string().min(1, 'Phone number is required'),
+  phone:    z.string().min(1, 'Phone number is required'),
   password: z.string().min(1, 'Password is required'),
 });
 
@@ -38,9 +39,7 @@ export default function LoginPage() {
     try {
       const { data: res } = await api.post('/auth/login', data);
       const { user, accessToken, refreshToken } = res.data as {
-        user: User;
-        accessToken: string;
-        refreshToken: string;
+        user: User; accessToken: string; refreshToken: string;
       };
       setAuth(user, accessToken, refreshToken);
       addToast('success', `Welcome back, ${user.name.split(' ')[0]}!`);
@@ -56,77 +55,68 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
+    <main className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
-        <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-10 h-10 bg-primary rounded-xl mb-3">
-            <Truck className="text-primary-foreground" size={20} />
+
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-12 h-12 bg-[#1E3A8A] rounded-xl mb-4 shadow-lg">
+            <Truck className="text-white" size={22} />
           </div>
-          <h1 className="text-xl font-bold text-foreground">Welcome back</h1>
-          <p className="text-sm text-muted-foreground mt-1">Sign in to your FreightFlow account</p>
+          <h1 className="text-2xl font-bold text-gray-900">Welcome back</h1>
+          <p className="text-sm text-gray-500 mt-1">Sign in to your FreightFlow account</p>
         </div>
 
-        <div className="bg-card rounded-2xl shadow-sm border border-border p-6">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Phone Number</label>
+        {/* Card */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+            <div>
+              <label className="ff-label">Phone Number</label>
               <input
                 {...register('phone')}
                 type="tel"
                 placeholder="+254712345678"
-                className={cn(
-                  'w-full h-10 rounded-lg border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors',
-                  'focus:border-primary focus:ring-2 focus:ring-primary/20',
-                  errors.phone ? 'border-destructive' : 'border-border'
-                )}
+                className={cn('ff-input', errors.phone && 'ff-input-error')}
               />
-              {errors.phone && (
-                <p className="text-xs text-destructive">{errors.phone.message}</p>
-              )}
+              {errors.phone && <p className="ff-error">{errors.phone.message}</p>}
             </div>
 
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-foreground">Password</label>
-                <a href="/auth/reset" className="text-xs text-primary hover:underline">
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-sm font-medium text-gray-700">Password</label>
+                <Link href="/auth/reset" className="text-xs text-[#1E3A8A] hover:underline">
                   Forgot password?
-                </a>
+                </Link>
               </div>
               <div className="relative">
                 <input
                   {...register('password')}
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Your password"
-                  className={cn(
-                    'w-full h-10 rounded-lg border bg-background px-3 pr-10 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors',
-                    'focus:border-primary focus:ring-2 focus:ring-primary/20',
-                    errors.password ? 'border-destructive' : 'border-border'
-                  )}
+                  className={cn('ff-input pr-10', errors.password && 'ff-input-error')}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((s) => !s)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
-              {errors.password && (
-                <p className="text-xs text-destructive">{errors.password.message}</p>
-              )}
+              {errors.password && <p className="ff-error">{errors.password.message}</p>}
             </div>
 
             <Button type="submit" disabled={loading} className="w-full h-10 mt-1">
-              {loading ? <Loader2 className="animate-spin" size={16} /> : 'Sign In'}
+              {loading ? <><Loader2 className="animate-spin" size={15} /> Signing in...</> : 'Sign In'}
             </Button>
           </form>
         </div>
 
-        <p className="text-center text-sm text-muted-foreground mt-4">
+        <p className="text-center text-sm text-gray-500 mt-5">
           Don&apos;t have an account?{' '}
-          <a href="/auth/role" className="text-primary font-medium hover:underline">
+          <Link href="/auth/role" className="text-[#1E3A8A] font-semibold hover:underline">
             Create one
-          </a>
+          </Link>
         </p>
       </div>
     </main>

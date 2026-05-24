@@ -38,6 +38,7 @@ export interface Load {
   weight: number;
   deliveryDate: string;
   notes?: string;
+  preferredVehicle?: string;
   lastLocation?: string;
   rating?: number;
   acceptedAt?: string;
