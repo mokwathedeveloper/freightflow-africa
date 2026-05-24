@@ -8,9 +8,10 @@ import { useState } from 'react';
 interface Props {
   title: string;
   notificationCount?: number;
+  onMenuClick?: () => void;
 }
 
-export function DashboardHeader({ title, notificationCount = 0 }: Props) {
+export function DashboardHeader({ title, notificationCount = 0, onMenuClick }: Props) {
   const router = useRouter();
   const { user } = useAuthStore();
   const [search, setSearch] = useState('');
@@ -21,7 +22,16 @@ export function DashboardHeader({ title, notificationCount = 0 }: Props) {
 
   return (
     <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 shrink-0">
-      <h1 className="text-lg font-semibold text-gray-900">{title}</h1>
+      <div className="flex items-center gap-3">
+        {onMenuClick && (
+          <button onClick={onMenuClick} className="md:hidden p-1 text-gray-500 hover:text-gray-700" aria-label="Toggle menu">
+            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        )}
+        <h1 className="text-lg font-semibold text-gray-900">{title}</h1>
+      </div>
 
       <div className="flex items-center gap-3">
         {/* Search */}
