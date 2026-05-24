@@ -1,7 +1,19 @@
-import Link from 'next/link';
-import { Truck, Home, LayoutDashboard } from 'lucide-react';
+'use client';
 
-export default function NotFound() {
+import { useEffect } from 'react';
+import { Truck, RefreshCw, MessageCircle } from 'lucide-react';
+
+export default function GlobalError({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
+  useEffect(() => {
+    console.error(error);
+  }, [error]);
+
   return (
     <main className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-5">
       {/* Brand */}
@@ -14,30 +26,29 @@ export default function NotFound() {
 
       {/* Card */}
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-10 text-center max-w-sm w-full">
-        <p className="text-7xl font-black text-[#1E3A8A] mb-3 leading-none">404</p>
-        <h1 className="text-xl font-bold text-gray-900 mb-2">Page not found</h1>
+        <p className="text-7xl font-black text-gray-200 mb-3 leading-none">500</p>
+        <h1 className="text-xl font-bold text-gray-900 mb-2">Something went wrong</h1>
         <p className="text-sm text-gray-500 mb-7 leading-relaxed">
-          The page you&apos;re looking for doesn&apos;t exist or was moved.
+          Our team has been notified. Please try again in a moment.
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Link
-            href="/dashboard/shipper"
+          <button
+            onClick={reset}
             className="inline-flex items-center justify-center gap-2 bg-[#1E3A8A] text-white font-semibold rounded-lg px-5 h-10 text-sm hover:bg-[#1e40af] transition-colors"
           >
-            <LayoutDashboard size={15} /> Go to Dashboard
-          </Link>
-          <Link
-            href="/"
+            <RefreshCw size={15} /> Try Again
+          </button>
+          <a
+            href="/contact"
             className="inline-flex items-center justify-center gap-2 border border-gray-200 text-gray-700 font-medium rounded-lg px-5 h-10 text-sm hover:bg-gray-50 transition-colors"
           >
-            <Home size={15} /> Go Home
-          </Link>
+            <MessageCircle size={15} /> Contact Support
+          </a>
         </div>
       </div>
 
       <p className="text-xs text-gray-400 mt-8">
-        Need help?{' '}
-        <a href="/contact" className="text-[#1E3A8A] hover:underline">Contact support</a>
+        Error reference: <span className="font-mono">{error.digest ?? 'unknown'}</span>
       </p>
     </main>
   );
