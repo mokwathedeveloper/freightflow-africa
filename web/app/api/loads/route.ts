@@ -22,25 +22,35 @@ export async function GET(req: NextRequest) {
   if ('error' in auth) return auth.error;
 
   const { searchParams } = new URL(req.url);
-  const origin = searchParams.get('origin');
+  const origin      = searchParams.get('origin');
   const destination = searchParams.get('destination');
-  const page = parseInt(searchParams.get('page') || '1');
-  const limit = parseInt(searchParams.get('limit') || '20');
+  const cargoType   = searchParams.get('cargoType');
+  const page        = Math.max(1, parseInt(searchParams.get('page') || '1'));
+  const limit       = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20')));
 
-  const loads = await prisma.load.findMany({
-    where: {
-      tenantId: auth.user.tenantId,
-      status: 'POSTED',
-      ...(origin && { origin: { contains: origin, mode: 'insensitive' } }),
-      ...(destination && { destination: { contains: destination, mode: 'insensitive' } }),
-    },
-    include: { shipper: { select: { name: true, company: true } } },
-    orderBy: { createdAt: 'desc' },
-    skip: (page - 1) * limit,
-    take: limit,
+  const where = {
+    tenantId: auth.user.tenantId,
+    status: 'POSTED' as const,
+    ...(origin      && { origin:      { contains: origin,      mode: 'insensitive' as const } }),
+    ...(destination && { destination: { contains: destination, mode: 'insensitive' as const } }),
+    ...(cargoType   && { cargoType:   { contains: cargoType,   mode: 'insensitive' as const } }),
+  };
+
+  const [loads, total] = await Promise.all([
+    prisma.load.findMany({
+      where,
+      include: { shipper: { select: { name: true, company: true } } },
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.load.count({ where }),
+  ]);
+
+  return NextResponse.json({
+    success: true,
+    data: { loads, total, page, pages: Math.ceil(total / limit) },
   });
-
-  return NextResponse.json({ success: true, data: loads });
 }
 
 // POST /api/loads — shipper creates a load
