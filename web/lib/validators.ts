@@ -25,7 +25,7 @@ export const postLoadSchema = z.object({
   destination: z.string().min(2).max(200),
   cargoType: z.string().min(1),
   weight: z.number().positive(),
-  deliveryDate: z.string().datetime(),
+  deliveryDate: z.string().min(1, 'Delivery date is required'),
   notes: z.string().max(500).optional(),
 });
 
