@@ -11,40 +11,67 @@ interface LoadsResponse {
   data: { loads: Load[]; total: number };
 }
 
-const STATUS_OPTIONS = ['All Statuses', 'POSTED', 'IN_TRANSIT', 'AWAITING_CONFIRMATION', 'DELIVERED', 'DISPUTED', 'CANCELLED'] as const;
-const CARGO_TYPES = ['All Cargo Types', 'Electronics', 'Furniture', 'Food & Beverage', 'Machinery', 'Steel Products', 'Fresh Produce', 'Automotive Parts'] as const;
+const STATUS_OPTIONS: string[] = [
+  'All Statuses', 'POSTED', 'ACCEPTED', 'PICKED_UP', 'IN_TRANSIT',
+  'AWAITING_CONFIRMATION', 'DELIVERED', 'DISPUTED', 'CANCELLED',
+];
+const CARGO_TYPE_OPTIONS: string[] = [
+  'All Cargo Types', 'Electronics', 'Furniture', 'Food & Beverage',
+  'Machinery', 'Steel Products', 'Fresh Produce', 'Automotive Parts',
+];
 
-function statusBadge(status: LoadStatus | string) {
+// Design-system-matched status badges
+function statusBadge(status: string) {
   switch (status) {
-    case 'DELIVERED':             return 'bg-green-50 text-green-700 border-green-200';
-    case 'IN_TRANSIT':            return 'bg-blue-50 text-blue-700 border-blue-200';
-    case 'POSTED':                return 'bg-amber-50 text-amber-700 border-amber-200';
-    case 'AWAITING_CONFIRMATION': return 'bg-[#1E3A8A]/5 text-[#1E3A8A] border-[#1E3A8A]/20';
-    case 'DISPUTED':              return 'bg-red-50 text-red-700 border-red-200';
-    case 'CANCELLED':             return 'bg-gray-100 text-gray-500 border-gray-200';
+    case 'POSTED':                return 'bg-blue-100 text-blue-800 border-blue-200';
+    case 'ACCEPTED':              return 'bg-indigo-100 text-indigo-800 border-indigo-200';
+    case 'PICKED_UP':             return 'bg-purple-100 text-purple-800 border-purple-200';
+    case 'IN_TRANSIT':            return 'bg-amber-100 text-amber-800 border-amber-200';
+    case 'AWAITING_CONFIRMATION': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+    case 'DELIVERED':             return 'bg-green-100 text-green-800 border-green-200';
+    case 'DISPUTED':              return 'bg-red-100 text-red-800 border-red-200';
+    case 'CANCELLED':             return 'bg-gray-100 text-gray-600 border-gray-200';
     default:                      return 'bg-gray-100 text-gray-500 border-gray-200';
   }
 }
 
-function statusLabel(status: LoadStatus | string) {
+function statusLabel(status: string) {
   switch (status) {
-    case 'DELIVERED':             return 'Delivered';
+    case 'POSTED':                return 'Posted';
+    case 'ACCEPTED':              return 'Accepted';
+    case 'PICKED_UP':             return 'Picked Up';
     case 'IN_TRANSIT':            return 'In Transit';
-    case 'POSTED':                return 'Pending Pricing';
-    case 'AWAITING_CONFIRMATION': return 'Assigned';
-    case 'DISPUTED':              return 'Delayed';
+    case 'AWAITING_CONFIRMATION': return 'Awaiting';
+    case 'DELIVERED':             return 'Delivered';
+    case 'DISPUTED':              return 'Disputed';
     case 'CANCELLED':             return 'Cancelled';
     default:                      return status;
   }
 }
 
+// Deterministic colored avatar matching the mockup shipper initials palette
+const AVATAR_COLORS = [
+  'bg-blue-600 text-white',    'bg-indigo-600 text-white',
+  'bg-teal-600 text-white',    'bg-emerald-600 text-white',
+  'bg-violet-600 text-white',  'bg-orange-600 text-white',
+  'bg-rose-600 text-white',    'bg-cyan-600 text-white',
+];
+function avatarClass(name: string) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
+  return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
+}
+function initials(name: string) {
+  return name.split(' ').filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('');
+}
+
 const PAGE_SIZE = 10;
 
 export default function AdminLoadsPage() {
-  const [search, setSearch]       = useState('');
-  const [status, setStatus]       = useState('All Statuses');
+  const [search,    setSearch]    = useState('');
+  const [status,    setStatus]    = useState('All Statuses');
   const [cargoType, setCargoType] = useState('All Cargo Types');
-  const [page, setPage]           = useState(1);
+  const [page,      setPage]      = useState(1);
 
   const { data, isLoading } = useQuery<LoadsResponse>({
     queryKey: ['admin-loads'],
@@ -56,10 +83,11 @@ export default function AdminLoadsPage() {
   const filtered = allLoads.filter((l) => {
     const matchStatus = status === 'All Statuses' || l.status === status;
     const matchCargo  = cargoType === 'All Cargo Types' || l.cargoType === cargoType;
-    const matchSearch = !search
-      || l.shortId.toLowerCase().includes(search.toLowerCase())
-      || l.origin.toLowerCase().includes(search.toLowerCase())
-      || l.destination.toLowerCase().includes(search.toLowerCase());
+    const matchSearch = !search ||
+      l.shortId.toLowerCase().includes(search.toLowerCase()) ||
+      l.origin.toLowerCase().includes(search.toLowerCase()) ||
+      l.destination.toLowerCase().includes(search.toLowerCase()) ||
+      (l.shipper?.company ?? l.shipper?.name ?? '').toLowerCase().includes(search.toLowerCase());
     return matchStatus && matchCargo && matchSearch;
   });
 
@@ -68,71 +96,86 @@ export default function AdminLoadsPage() {
 
   return (
     <div className="space-y-5">
-      {/* Header */}
+
+      {/* ── Header ───────────────────────────────────────────── */}
       <div className="flex items-start justify-between">
         <div>
           <h2 className="text-xl font-bold text-gray-900">Load Management</h2>
-          <p className="text-sm text-gray-500 mt-0.5">Create, view, and manage all your platform loads in one place.</p>
+          <p className="text-sm text-gray-500 mt-0.5">Create, view, and manage all platform loads in one place.</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <button className="flex items-center gap-2 h-9 px-4 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm">
             <Download size={14} /> Export Report
           </button>
-          <button className="flex items-center gap-2 h-9 px-4 rounded-lg bg-[#16A34A] text-white text-sm font-medium hover:bg-green-700 transition-colors">
+          <button className="flex items-center gap-2 h-9 px-4 rounded-lg bg-[#1E3A8A] text-white text-sm font-medium hover:bg-[#1e3a8a]/90 transition-colors">
             <Plus size={14} /> Add Load
           </button>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-3 flex flex-wrap gap-2 items-center">
-        <div className="relative flex-1 min-w-[160px] max-w-xs">
+      {/* ── Filters ──────────────────────────────────────────── */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 flex flex-wrap gap-2 items-center">
+        {/* Search */}
+        <div className="relative flex-1 min-w-[180px] max-w-sm">
           <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             placeholder="Search by ID, shipper, or route..."
-            className="ff-input pl-8 text-xs h-8"
+            className="ff-input pl-8 h-8 text-xs"
           />
         </div>
+
+        {/* Status */}
         <select
           value={status}
           onChange={(e) => { setStatus(e.target.value); setPage(1); }}
-          className="ff-input h-8 text-xs w-auto pr-7"
+          className="ff-input h-8 text-xs w-auto"
         >
           {STATUS_OPTIONS.map((s) => (
-            <option key={s} value={s}>{s === 'All Statuses' ? 'All Statuses' : statusLabel(s)}</option>
+            <option key={s} value={s}>
+              {s === 'All Statuses' ? 'All Statuses' : statusLabel(s)}
+            </option>
           ))}
         </select>
+
+        {/* Cargo Type */}
         <select
           value={cargoType}
           onChange={(e) => { setCargoType(e.target.value); setPage(1); }}
-          className="ff-input h-8 text-xs w-auto pr-7"
+          className="ff-input h-8 text-xs w-auto"
         >
-          {CARGO_TYPES.map((c) => <option key={c}>{c}</option>)}
+          {CARGO_TYPE_OPTIONS.map((c) => <option key={c}>{c}</option>)}
         </select>
+
+        {/* Date range (static display) */}
         <div className="flex items-center gap-1.5 text-xs text-gray-500 border border-gray-200 rounded-lg px-3 h-8 bg-white">
-          <span>May 10 – May 16, 2024</span>
+          All Routes
         </div>
-        <p className="text-xs text-gray-400 ml-auto">{filtered.length} loads</p>
+
+        <p className="text-xs text-gray-400 ml-auto shrink-0">{filtered.length} loads</p>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+      {/* ── Table ────────────────────────────────────────────── */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         {isLoading ? (
           <div className="divide-y divide-gray-100">
             {[...Array(8)].map((_, i) => (
-              <div key={i} className="px-6 py-4 flex items-center gap-4 animate-pulse">
-                <div className="h-3 bg-gray-100 rounded w-24" />
+              <div key={i} className="px-5 py-4 flex items-center gap-4 animate-pulse">
+                <div className="h-3 bg-gray-100 rounded w-24 shrink-0" />
+                <div className="w-7 h-7 bg-gray-100 rounded-full shrink-0" />
                 <div className="h-3 bg-gray-100 rounded flex-1" />
+                <div className="h-3 bg-gray-100 rounded w-28" />
                 <div className="h-5 bg-gray-100 rounded w-20" />
+                <div className="w-7 h-7 bg-gray-100 rounded-full shrink-0" />
               </div>
             ))}
           </div>
         ) : paged.length === 0 ? (
-          <div className="py-14 text-center">
+          <div className="py-16 text-center">
             <Package className="mx-auto text-gray-300 mb-3" size={32} />
             <p className="text-sm font-medium text-gray-500">No loads found</p>
+            <p className="text-xs text-gray-400 mt-1">Try adjusting the search or filters.</p>
           </div>
         ) : (
           <table className="w-full data-table">
@@ -142,78 +185,115 @@ export default function AdminLoadsPage() {
                 <th>Shipper</th>
                 <th>Route</th>
                 <th>Cargo Type</th>
+                <th>Date Range</th>
                 <th>Status</th>
                 <th>Assigned Transporter</th>
-                <th>Actions</th>
+                <th className="text-right pr-5">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {paged.map((l) => (
-                <tr key={l.id}>
-                  <td>
-                    <div>
-                      <p className="font-mono text-xs font-medium text-gray-900">{l.shortId}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">{formatDate(l.createdAt)}</p>
-                    </div>
-                  </td>
-                  <td>
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-700 shrink-0">
-                        {((l as unknown as Record<string, unknown>).shipper as {name?: string} | undefined)?.name?.charAt(0) ?? 'S'}
-                      </div>
-                      <div>
-                        <p className="text-xs font-medium text-gray-900">{((l as unknown as Record<string, unknown>).shipper as {name?: string; company?: string} | undefined)?.name ?? '—'}</p>
-                        <p className="text-xs text-gray-400">{((l as unknown as Record<string, unknown>).shipper as {company?: string} | undefined)?.company ?? ''}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td>
-                    <div>
-                      <p className="text-xs font-medium text-gray-900">{l.origin}</p>
-                      <p className="text-xs text-gray-400">{l.destination}</p>
-                    </div>
-                  </td>
-                  <td className="text-xs text-gray-600">{l.cargoType}</td>
-                  <td>
-                    <span className={cn('text-xs font-medium px-2 py-0.5 rounded-full border', statusBadge(l.status))}>
-                      {statusLabel(l.status)}
-                    </span>
-                  </td>
-                  <td>
-                    {((l as unknown as Record<string, unknown>).transporter as {name?: string} | undefined)?.name ? (
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-full bg-purple-100 flex items-center justify-center text-xs font-bold text-purple-700 shrink-0">
-                          {((l as unknown as Record<string, unknown>).transporter as {name?: string} | undefined)?.name?.charAt(0)}
+              {paged.map((l) => {
+                const shipperName = l.shipper?.company || l.shipper?.name || 'Unknown';
+                const ini = initials(shipperName);
+                const shipperAv = avatarClass(shipperName);
+
+                const transporterName = l.transporter?.name;
+                const transAv = transporterName ? avatarClass(transporterName) : '';
+                const transIni = transporterName ? initials(transporterName) : '';
+
+                return (
+                  <tr key={l.id} className="hover:bg-gray-50/60">
+                    {/* Load ID */}
+                    <td>
+                      <span className="font-mono text-xs font-medium text-gray-800 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded">
+                        {l.shortId}
+                      </span>
+                    </td>
+
+                    {/* Shipper with colored avatar */}
+                    <td>
+                      <div className="flex items-center gap-2.5">
+                        <div className={cn('w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0', shipperAv)}>
+                          {ini}
                         </div>
-                        <p className="text-xs font-medium text-gray-900">{((l as unknown as Record<string, unknown>).transporter as {name?: string} | undefined)?.name}</p>
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-gray-900 truncate max-w-[110px]">
+                            {shipperName}
+                          </p>
+                        </div>
                       </div>
-                    ) : (
-                      <span className="text-xs text-gray-400">Unassigned</span>
-                    )}
-                  </td>
-                  <td>
-                    <button className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors text-xs">
-                      Edit
-                    </button>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+
+                    {/* Route — stacked origin / destination */}
+                    <td>
+                      <p className="text-xs font-medium text-gray-900">{l.origin}</p>
+                      <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
+                        → {l.destination}
+                      </p>
+                    </td>
+
+                    {/* Cargo Type */}
+                    <td>
+                      <span className="text-xs text-gray-600">{l.cargoType}</span>
+                    </td>
+
+                    {/* Date range */}
+                    <td>
+                      <p className="text-xs text-gray-600">{formatDate(l.createdAt)}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">→ {formatDate(l.deliveryDate)}</p>
+                    </td>
+
+                    {/* Status badge */}
+                    <td>
+                      <span className={cn(
+                        'inline-flex text-xs font-medium px-2 py-0.5 rounded-full border',
+                        statusBadge(l.status)
+                      )}>
+                        {statusLabel(l.status)}
+                      </span>
+                    </td>
+
+                    {/* Assigned Transporter */}
+                    <td>
+                      {transporterName ? (
+                        <div className="flex items-center gap-2">
+                          <div className={cn('w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0', transAv)}>
+                            {transIni}
+                          </div>
+                          <p className="text-xs font-medium text-gray-900 truncate max-w-[100px]">
+                            {transporterName}
+                          </p>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-gray-400 italic">Unassigned</span>
+                      )}
+                    </td>
+
+                    {/* Actions */}
+                    <td className="text-right pr-2">
+                      <button className="h-7 px-3 text-xs font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-colors">
+                        Edit
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}
       </div>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
+      {/* ── Pagination ───────────────────────────────────────── */}
+      {!isLoading && totalPages > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-xs text-gray-500">
-            Showing {(page - 1) * PAGE_SIZE + 1} to {Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length} loads
+            Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length} loads
           </p>
           <div className="flex items-center gap-1">
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="w-7 h-7 rounded-lg flex items-center justify-center border border-gray-200 text-gray-500 disabled:opacity-40 hover:bg-gray-50 transition-colors"
+              className="w-8 h-8 rounded-lg flex items-center justify-center border border-gray-200 text-gray-500 disabled:opacity-40 hover:bg-gray-50 transition-colors"
             >
               <ChevronLeft size={13} />
             </button>
@@ -221,7 +301,12 @@ export default function AdminLoadsPage() {
               <button
                 key={p}
                 onClick={() => setPage(p)}
-                className={cn('w-7 h-7 rounded-lg text-xs font-medium border transition-colors', page === p ? 'bg-[#1E3A8A] text-white border-[#1E3A8A]' : 'border-gray-200 text-gray-600 hover:bg-gray-50')}
+                className={cn(
+                  'w-8 h-8 rounded-lg text-xs font-medium border transition-colors',
+                  page === p
+                    ? 'bg-[#1E3A8A] text-white border-[#1E3A8A]'
+                    : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                )}
               >
                 {p}
               </button>
@@ -229,7 +314,7 @@ export default function AdminLoadsPage() {
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
-              className="w-7 h-7 rounded-lg flex items-center justify-center border border-gray-200 text-gray-500 disabled:opacity-40 hover:bg-gray-50 transition-colors"
+              className="w-8 h-8 rounded-lg flex items-center justify-center border border-gray-200 text-gray-500 disabled:opacity-40 hover:bg-gray-50 transition-colors"
             >
               <ChevronRightIcon size={13} />
             </button>

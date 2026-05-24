@@ -100,41 +100,29 @@ export default function TransporterPage() {
         </div>
       </div>
 
-      {/* KPI Cards */}
+      {/* KPI Cards — skeleton or real */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-        <KpiCard
-          label="Active Jobs"
-          value={isLoading ? '—' : active}
-          sub="In progress"
-          icon={Briefcase}
-          iconBg="bg-blue-50"
-          iconColor="text-[#1E3A8A]"
-        />
-        <KpiCard
-          label="Delivered"
-          value={isLoading ? '—' : delivered}
-          sub="All time"
-          icon={CheckCircle}
-          iconBg="bg-green-50"
-          iconColor="text-green-600"
-          trend={delivered > 0 ? `${delivered}` : undefined}
-        />
-        <KpiCard
-          label="My Rating"
-          value={isLoading ? '—' : rating}
-          sub={`${ratingCount} reviews`}
-          icon={Star}
-          iconBg="bg-amber-50"
-          iconColor="text-amber-500"
-        />
-        <KpiCard
-          label="Total Jobs"
-          value={isLoading ? '—' : loads.length}
-          sub="All time"
-          icon={Truck}
-          iconBg="bg-purple-50"
-          iconColor="text-purple-600"
-        />
+        {isLoading ? (
+          [...Array(4)].map((_, i) => (
+            <div key={i} className="kpi-card animate-pulse space-y-3">
+              <div className="flex items-start justify-between">
+                <div className="w-10 h-10 bg-gray-100 rounded-lg" />
+                <div className="h-5 w-12 bg-gray-100 rounded-full" />
+              </div>
+              <div className="space-y-1.5">
+                <div className="h-7 bg-gray-100 rounded w-16" />
+                <div className="h-4 bg-gray-100 rounded w-24" />
+              </div>
+            </div>
+          ))
+        ) : (
+          <>
+            <KpiCard label="Active Jobs" value={active} sub="In progress" icon={Briefcase} iconBg="bg-blue-50" iconColor="text-[#1E3A8A]" />
+            <KpiCard label="Delivered" value={delivered} sub="All time" icon={CheckCircle} iconBg="bg-green-50" iconColor="text-green-600" trend={delivered > 0 ? `${delivered}` : undefined} />
+            <KpiCard label="My Rating" value={rating} sub={`${ratingCount} reviews`} icon={Star} iconBg="bg-amber-50" iconColor="text-amber-500" />
+            <KpiCard label="Total Jobs" value={loads.length} sub="All time" icon={Truck} iconBg="bg-purple-50" iconColor="text-purple-600" />
+          </>
+        )}
       </div>
 
       {/* Chart + jobs */}

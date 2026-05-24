@@ -129,11 +129,11 @@
   @apply bg-gray-50;
 }
 
-/* Form inputs */
+/* Form inputs — focus color: navy #1E3A8A per design_system.md §8 */
 .ff-input {
   @apply w-full h-10 rounded-md border border-gray-300 bg-white px-3.5 py-2 text-sm text-gray-900 placeholder:text-gray-400
          outline-none transition-colors
-         focus:border-[#16A34A] focus:ring-2 focus:ring-[#16A34A]/20;
+         focus:border-[#1E3A8A] focus:ring-2 focus:ring-[#1E3A8A]/15;
 }
 .ff-input-error {
   @apply border-red-500 focus:border-red-500 focus:ring-red-500/20;
