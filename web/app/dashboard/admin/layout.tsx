@@ -55,11 +55,7 @@ function AdminSidebar({ onClose }: { onClose?: () => void }) {
       {/* Nav */}
       <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
         {NAV.map(({ href, label, icon: Icon }, idx) => {
-          const active = label === 'Dashboard'
-            ? pathname === href
-            : label === 'Settings' || label === 'Audit Logs'
-              ? false
-              : pathname.startsWith(href);
+          const active = label === 'Dashboard' ? pathname === href : pathname.startsWith(href);
           return (
             <Link
               key={`${href}-${idx}`}
@@ -104,7 +100,6 @@ function AdminSidebar({ onClose }: { onClose?: () => void }) {
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth('ADMIN');
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
 
   if (!isAuthenticated) return null;
 
@@ -137,8 +132,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="relative flex-1 max-w-md">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search anything..."
               className="w-full h-9 pl-9 pr-4 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#1E3A8A]/30 focus:border-[#1E3A8A]/40 transition-colors"
             />

@@ -15,7 +15,8 @@ export function DashboardHeader({ title, notificationCount = 0, onMenuClick }: P
   const router = useRouter();
   const { user } = useAuthStore();
   const [search, setSearch] = useState('');
-  const safeRole = user?.role?.toLowerCase() || 'shipper';
+  const ROLE_PATH: Record<string, string> = { SHIPPER: 'shipper', TRANSPORTER: 'transporter', ADMIN: 'admin' };
+  const safeRole = user?.role ? (ROLE_PATH[user.role] ?? 'shipper') : 'shipper';
 
   const initials = user?.name
     ? user.name.split(' ').map((n: string) => n[0]).slice(0, 2).join('').toUpperCase()

@@ -15,13 +15,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Phone number already registered' }, { status: 409 });
     }
 
-    // Get or create default tenant
-    let tenant = await prisma.tenant.findFirst({ where: { slug: 'default' } });
-    if (!tenant) {
-      tenant = await prisma.tenant.create({ data: { name: 'FreightFlow', slug: 'default' } });
-    }
+    const tenant = await prisma.tenant.upsert({
+      where: { slug: 'default' },
+      update: {},
+      create: { name: 'FreightFlow', slug: 'default' },
+    });
 
     const passwordHash = await hashPassword(body.password);
+
+    const skipOtp = process.env.SKIP_OTP === 'true';
 
     const user = await prisma.user.create({
       data: {
@@ -33,13 +35,20 @@ export async function POST(req: NextRequest) {
         company: body.company,
         vehicleType: body.vehicleType,
         numberPlate: body.numberPlate,
+        isVerified: skipOtp,
       },
     });
 
-    await sendPhoneOTP(user.id, user.phone);
+    if (!skipOtp) {
+      await sendPhoneOTP(user.id, user.phone);
+    }
+
+    const message = skipOtp
+      ? 'Registration successful. You can now log in.'
+      : 'Registration successful. Check your phone for a verification code.';
 
     return NextResponse.json(
-      { success: true, message: 'Registration successful. Check your phone for a verification code.', data: { userId: user.id } },
+      { success: true, message, skipOtp, data: { userId: user.id } },
       { status: 201 }
     );
   } catch (err) {

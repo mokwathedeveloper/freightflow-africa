@@ -171,7 +171,10 @@ export default function BillingPage() {
               <AlertCircle size={16} className="text-amber-500 shrink-0" />
               <div>
                 <p className="text-sm text-gray-600">No payment method on file</p>
-                <button className="text-xs text-[#1E3A8A] hover:underline mt-0.5">
+                <button
+                  onClick={() => addToast('info', 'Payment method setup coming soon')}
+                  className="text-xs text-[#1E3A8A] hover:underline mt-0.5"
+                >
                   Add payment method
                 </button>
               </div>

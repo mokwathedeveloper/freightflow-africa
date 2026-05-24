@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import bcrypt from 'bcryptjs';
 import { comparePassword } from '@/lib/hash';
 import { signAccessToken, signRefreshToken } from '@/lib/auth';
 import { loginSchema } from '@/lib/validators';
 import { ZodError } from 'zod';
 
-// Bcrypt hash of a dummy password — ensures comparePassword always runs to prevent timing attacks
-const DUMMY_HASH = '$2b$12$dummy.hash.to.prevent.timing.attacks.XXXXXXXXXXXXXXXXX';
+// Valid bcrypt hash — ensures comparePassword always runs to prevent timing-based user enumeration
+const DUMMY_HASH = bcrypt.hashSync('__dummy_password_not_used__', 12);
 
 export async function POST(req: NextRequest) {
   try {

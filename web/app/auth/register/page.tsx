@@ -64,7 +64,7 @@ export default function RegisterPage() {
   async function onSubmit(data: FormData) {
     setLoading(true);
     try {
-      await api.post('/auth/register', {
+      const res = await api.post('/auth/register', {
         name: data.name,
         phone: data.phone,
         email: data.email || undefined,
@@ -74,8 +74,13 @@ export default function RegisterPage() {
         vehicleType: data.vehicleType || undefined,
         numberPlate: data.numberPlate || undefined,
       });
-      sessionStorage.setItem('verifyPhone', data.phone);
-      router.push('/auth/verify');
+      if (res.data.skipOtp) {
+        addToast('success', 'Account created! You can now log in.');
+        router.push('/auth/login');
+      } else {
+        sessionStorage.setItem('verifyPhone', data.phone);
+        router.push('/auth/verify');
+      }
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||

@@ -33,8 +33,13 @@ function ProfileTab() {
 
   const mut = useMutation({
     mutationFn: () => api.patch('/users/me', { name, email, vehicleType, numberPlate }),
-    onSuccess: () => addToast('success', 'Profile updated successfully'),
-    onError:   () => addToast('error',   'Failed to update profile'),
+    onSuccess: (res) => {
+      useAuthStore.setState((s) => ({
+        user: s.user ? { ...s.user, ...res.data.data } : s.user,
+      }));
+      addToast('success', 'Profile updated successfully');
+    },
+    onError: () => addToast('error', 'Failed to update profile'),
   });
 
   return (

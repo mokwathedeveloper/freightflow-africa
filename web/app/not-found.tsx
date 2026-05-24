@@ -1,7 +1,19 @@
+'use client';
+
 import Link from 'next/link';
 import { Truck, Home, LayoutDashboard } from 'lucide-react';
+import { useAuthStore } from '@/store/auth.store';
+
+const ROLE_DASH: Record<string, string> = {
+  SHIPPER:     '/dashboard/shipper',
+  TRANSPORTER: '/dashboard/transporter',
+  ADMIN:       '/dashboard/admin',
+};
 
 export default function NotFound() {
+  const user = useAuthStore((s) => s.user);
+  const dashHref = user?.role ? (ROLE_DASH[user.role] ?? '/') : '/';
+
   return (
     <main className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-5">
       {/* Brand */}
@@ -21,7 +33,7 @@ export default function NotFound() {
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link
-            href="/dashboard/shipper"
+            href={dashHref}
             className="inline-flex items-center justify-center gap-2 bg-[#1E3A8A] text-white font-semibold rounded-lg px-5 h-10 text-sm hover:bg-[#1e40af] transition-colors"
           >
             <LayoutDashboard size={15} /> Go to Dashboard

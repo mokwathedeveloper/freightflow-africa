@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
     if (jobs.length === 1) {
       const job = jobs[0];
       if (level === 1) {
-        return CON(`Update #${job.shortId}\n1. Picked Up\n2. In Transit\n3. Delivered`);
+        return CON(`Update #${job.shortId}\n1. Picked Up\n2. In Transit\n3. Awaiting Conf.`);
       }
       const newStatus = STATUS_MAP[steps[1]];
       if (!newStatus) return END('Invalid option.');
@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
     if (!job) return END('Invalid selection.');
 
     if (level === 2) {
-      return CON(`Update #${job.shortId}\n1. Picked Up\n2. In Transit\n3. Delivered`);
+      return CON(`Update #${job.shortId}\n1. Picked Up\n2. In Transit\n3. Awaiting Conf.`);
     }
     const newStatus = STATUS_MAP[steps[2]];
     if (!newStatus) return END('Invalid option.');

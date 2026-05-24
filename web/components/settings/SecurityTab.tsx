@@ -18,7 +18,7 @@ export function SecurityTab() {
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew,     setShowNew]     = useState(false);
   const [otp,         setOtp]         = useState(['', '', '', '', '', '']);
-  const otpRefs = Array.from({ length: 6 }, () => useRef<HTMLInputElement>(null));
+  const otpInputRefs = useRef<Array<HTMLInputElement | null>>(Array(6).fill(null));
 
   const requestMut = useMutation({
     mutationFn: () => api.post('/auth/change-password/request'),
@@ -39,18 +39,18 @@ export function SecurityTab() {
   function handleOtpChange(i: number, val: string) {
     const digit = val.replace(/\D/g, '').slice(-1);
     const next = [...otp]; next[i] = digit; setOtp(next);
-    if (digit && i < 5) otpRefs[i + 1].current?.focus();
+    if (digit && i < 5) otpInputRefs.current[i + 1]?.focus();
   }
 
   function handleOtpKey(i: number, e: KeyboardEvent<HTMLInputElement>) {
-    if (e.key === 'Backspace' && !otp[i] && i > 0) otpRefs[i - 1].current?.focus();
+    if (e.key === 'Backspace' && !otp[i] && i > 0) otpInputRefs.current[i - 1]?.focus();
   }
 
   function handleOtpPaste(e: ClipboardEvent<HTMLInputElement>) {
     e.preventDefault();
     const digits = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6).split('');
     const next = [...otp]; digits.forEach((d, idx) => { next[idx] = d; }); setOtp(next);
-    otpRefs[Math.min(digits.length, 5)].current?.focus();
+    otpInputRefs.current[Math.min(digits.length, 5)]?.focus();
   }
 
   function handleSubmit() {
@@ -91,7 +91,7 @@ export function SecurityTab() {
         </div>
         <div className="flex gap-2">
           {otp.map((digit, i) => (
-            <input key={i} ref={otpRefs[i]} type="text" inputMode="numeric" maxLength={1} value={digit}
+            <input key={i} ref={(el) => { otpInputRefs.current[i] = el; }} type="text" inputMode="numeric" maxLength={1} value={digit}
               onChange={(e) => handleOtpChange(i, e.target.value)}
               onKeyDown={(e) => handleOtpKey(i, e)}
               onPaste={i === 0 ? handleOtpPaste : undefined}

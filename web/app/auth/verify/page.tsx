@@ -94,7 +94,8 @@ export default function VerifyPage() {
       sessionStorage.removeItem('verifyPhone');
       sessionStorage.removeItem('selectedRole');
       addToast('success', 'Phone verified! Welcome to FreightFlow.');
-      router.replace(`/dashboard/${user.role.toLowerCase()}`);
+      const ROLE_PATH: Record<string, string> = { SHIPPER: '/dashboard/shipper', TRANSPORTER: '/dashboard/transporter', ADMIN: '/dashboard/admin' };
+      router.replace(ROLE_PATH[user.role] ?? '/dashboard/shipper');
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||

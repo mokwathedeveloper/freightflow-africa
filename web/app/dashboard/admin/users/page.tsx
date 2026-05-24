@@ -78,7 +78,11 @@ function UserDetailPanel({ user, onClose }: UserDetailPanelProps) {
   });
 
   const saveMut = useMutation({
-    mutationFn: () => api.patch(`/admin/users/${user.id}`, { roles, permissions: perms }),
+    mutationFn: () => {
+      const role: 'SHIPPER' | 'TRANSPORTER' | 'ADMIN' =
+        roles.admin ? 'ADMIN' : roles.transporter ? 'TRANSPORTER' : 'SHIPPER';
+      return api.patch(`/admin/users/${user.id}`, { role });
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin-users'] });
       addToast('success', 'User updated successfully');

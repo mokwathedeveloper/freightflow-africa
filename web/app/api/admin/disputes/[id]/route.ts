@@ -17,15 +17,27 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
 
   try {
-    const updated = await prisma.dispute.update({
+    const existing = await prisma.dispute.findUnique({
       where: { id },
-      data: { status: 'RESOLVED', resolution, resolvedById: auth.user.userId },
-      select: { loadId: true },
+      select: { tenantId: true, loadId: true },
     });
 
-    if (finalStatus) {
-      await prisma.load.update({ where: { id: updated.loadId }, data: { status: finalStatus } });
+    if (!existing) {
+      return NextResponse.json({ success: false, error: 'Dispute not found' }, { status: 404 });
     }
+    if (existing.tenantId !== auth.user.tenantId) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.dispute.update({
+        where: { id },
+        data: { status: 'RESOLVED', resolution, resolvedById: auth.user.userId },
+      });
+      if (finalStatus) {
+        await tx.load.update({ where: { id: existing.loadId }, data: { status: finalStatus } });
+      }
+    });
 
     return NextResponse.json({ success: true, message: 'Dispute resolved' });
   } catch (err) {

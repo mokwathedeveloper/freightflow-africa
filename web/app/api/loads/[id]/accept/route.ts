@@ -38,7 +38,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ success: false, error: 'Load not found after update' }, { status: 500 });
   }
 
-  await sendSMS(
+  sendSMS(
     updated.shipper.phone,
     'LOAD_ACCEPTED',
     {
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       trackUrl: `${APP_URL}/dashboard/shipper/track/${id}`,
     },
     id
-  );
+  ).catch((err) => console.error('[accept-sms]', err));
 
   return NextResponse.json({ success: true, data: updated });
 }

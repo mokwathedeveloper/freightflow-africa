@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   Package, Truck, CheckCircle, AlertTriangle,
   PlusCircle, ChevronRight, TrendingUp,
@@ -65,6 +66,7 @@ function buildChartData(loads: Load[]) {
 }
 
 export default function ShipperPage() {
+  const router = useRouter();
   const user = useAuthStore((s) => s.user);
 
   const { data, isLoading } = useQuery<MyLoadsResponse>({
@@ -223,7 +225,7 @@ export default function ShipperPage() {
             </thead>
             <tbody>
               {recent.map((load) => (
-                <tr key={load.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => window.location.href = `/dashboard/shipper/track/${load.id}`}>
+                <tr key={load.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => router.push(`/dashboard/shipper/track/${load.id}`)}>
                   <td className="font-mono text-xs text-gray-500">{load.shortId}</td>
                   <td className="font-medium">{load.origin} → {load.destination}</td>
                   <td className="text-gray-500">{load.cargoType}</td>

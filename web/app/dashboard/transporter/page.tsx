@@ -60,7 +60,7 @@ function buildChartData(loads: Load[]) {
   loads
     .filter((l) => l.status === 'DELIVERED')
     .forEach((l) => {
-      const d = new Date(l.createdAt);
+      const d = new Date(l.confirmedAt ?? l.deliveredAt ?? l.createdAt);
       const key = `${d.getFullYear()}-${d.getMonth()}`;
       if (key in buckets) buckets[key].jobs++;
     });
@@ -178,7 +178,7 @@ export default function TransporterPage() {
               <p className="text-xs font-bold text-white/80 uppercase tracking-widest">Airtime Rewards</p>
             </div>
             <p className="text-2xl font-black">
-              KES {delivered >= 4 ? (Math.floor(delivered / 1) * 20).toLocaleString() : '0'}
+              KES {(user?.rating ?? 0) >= 4 ? (delivered * 20).toLocaleString() : '0'}
             </p>
             <p className="text-sm text-white/70 mt-0.5">Earned for on-time deliveries (rated ≥ 4★)</p>
           </div>

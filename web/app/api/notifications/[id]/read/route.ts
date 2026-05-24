@@ -8,10 +8,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const { id } = await params;
 
-  await prisma.notification.updateMany({
-    where: { id, userId: auth.user.userId },
-    data: { isRead: true },
-  });
-
-  return NextResponse.json({ success: true, message: 'Notification marked as read' });
+  try {
+    await prisma.notification.updateMany({
+      where: { id, userId: auth.user.userId },
+      data: { isRead: true },
+    });
+    return NextResponse.json({ success: true, message: 'Notification marked as read' });
+  } catch (err) {
+    console.error('[notification-read]', err);
+    return NextResponse.json({ success: false, error: 'Failed to mark notification as read' }, { status: 500 });
+  }
 }

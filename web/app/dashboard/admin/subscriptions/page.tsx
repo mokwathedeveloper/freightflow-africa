@@ -276,7 +276,10 @@ export default function AdminSubscriptionsPage() {
             <p className="text-sm text-gray-500">No payment method on file.</p>
           )}
 
-          <button className="w-full flex items-center justify-center gap-2 h-9 rounded-lg border-2 border-dashed border-gray-200 text-sm font-medium text-gray-500 hover:border-gray-300 hover:bg-gray-50 transition-colors">
+          <button
+            onClick={() => addToast('info', 'Payment method setup coming soon')}
+            className="w-full flex items-center justify-center gap-2 h-9 rounded-lg border-2 border-dashed border-gray-200 text-sm font-medium text-gray-500 hover:border-gray-300 hover:bg-gray-50 transition-colors"
+          >
             <Plus size={15} /> Add Payment Method
           </button>
 

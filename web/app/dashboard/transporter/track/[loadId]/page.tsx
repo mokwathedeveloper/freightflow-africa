@@ -261,7 +261,7 @@ export default function TransporterTrackPage({ params }: { params: Promise<{ loa
               <h3 className="text-sm font-semibold text-gray-900 mb-3">Shipper</h3>
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-[#1E3A8A]/10 flex items-center justify-center font-bold text-[#1E3A8A]">
-                  {(load.shipper.company || load.shipper.name).charAt(0)}
+                  {(load.shipper.company?.trim() || load.shipper.name?.trim() || '?').charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-semibold text-gray-900">{load.shipper.company || load.shipper.name}</p>

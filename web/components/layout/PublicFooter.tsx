@@ -110,7 +110,7 @@ export default function PublicFooter() {
           <p>© 2026 FreightFlow · Africa&apos;s Talking Hackathon</p>
           <div className="flex gap-4">
             <Link href="/terms" className="hover:text-white/80 transition-colors">Terms of Service</Link>
-            <Link href="/terms" className="hover:text-white/80 transition-colors">Privacy Policy</Link>
+            <Link href="/terms#privacy" className="hover:text-white/80 transition-colors">Privacy Policy</Link>
           </div>
         </div>
       </div>
