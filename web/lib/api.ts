@@ -1,9 +1,8 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000',
+  baseURL: '/api',
   headers: { 'Content-Type': 'application/json' },
-  withCredentials: true,
 });
 
 // Attach access token from localStorage on every request
@@ -25,10 +24,7 @@ api.interceptors.response.use(
       const refreshToken = localStorage.getItem('refreshToken');
       if (refreshToken) {
         try {
-          const { data } = await axios.post(
-            `${process.env.NEXT_PUBLIC_API_URL}/api/auth/refresh`,
-            { token: refreshToken }
-          );
+          const { data } = await axios.post('/api/auth/refresh', { token: refreshToken });
           localStorage.setItem('accessToken', data.data.accessToken);
           original.headers.Authorization = `Bearer ${data.data.accessToken}`;
           return api(original);
