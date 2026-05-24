@@ -1,7 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+const WEBHOOK_SECRET = process.env.AT_WEBHOOK_SECRET;
+
 export async function POST(req: NextRequest) {
+  // Verify shared secret passed as ?secret= query param
+  if (WEBHOOK_SECRET) {
+    const secret = req.nextUrl.searchParams.get('secret');
+    if (secret !== WEBHOOK_SECRET) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+  }
+
   const body = await req.json();
   const { id: atMessageId, status } = body;
 

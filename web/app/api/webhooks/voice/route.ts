@@ -1,7 +1,17 @@
 import { NextRequest } from 'next/server';
 
+const WEBHOOK_SECRET = process.env.AT_WEBHOOK_SECRET;
+
 // AT Voice callback — returns SSML/XML to play when the call connects
 export async function POST(req: NextRequest) {
+  // Verify shared secret passed as ?secret= query param
+  if (WEBHOOK_SECRET) {
+    const secret = req.nextUrl.searchParams.get('secret');
+    if (secret !== WEBHOOK_SECRET) {
+      return new Response('Unauthorized', { status: 401 });
+    }
+  }
+
   const body = await req.formData().catch(() => null);
   const sessionId = body?.get('sessionId') ?? '';
 

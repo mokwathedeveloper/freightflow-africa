@@ -379,7 +379,7 @@ export default function ShipperTrackPage({ params }: { params: Promise<{ loadId:
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button variant="success" onClick={() => confirmMut.mutate(rating || 5)} disabled={confirmMut.isPending} className="flex-1">
+                <Button variant="success" onClick={() => confirmMut.mutate(rating)} disabled={confirmMut.isPending || rating === 0} className="flex-1">
                   {confirmMut.isPending ? <Loader2 className="animate-spin" size={14} /> : '✓ Confirm Delivery'}
                 </Button>
                 <Button variant="destructive" onClick={() => setDisputeOpen(true)} size="sm">
