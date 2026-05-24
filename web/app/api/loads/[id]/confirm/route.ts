@@ -45,12 +45,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         data: { rating: newRating, ratingCount: newCount },
       });
 
-      await sendSMS(load.transporter.phone, 'DELIVERY_CONFIRMED', { loadShortId: load.shortId }, id);
-      await sendSMS(load.shipper.phone, 'DELIVERY_CONFIRMED', { loadShortId: load.shortId }, id);
+      // Non-blocking SMS — DB already committed; SMS failure must not cause 500
+      Promise.allSettled([
+        sendSMS(load.transporter.phone, 'DELIVERY_CONFIRMED', { loadShortId: load.shortId }, id),
+        sendSMS(load.shipper.phone, 'DELIVERY_CONFIRMED', { loadShortId: load.shortId }, id),
+      ]).catch((err) => console.error('[confirm-sms]', err));
 
-      // Airtime reward for rating >= 4 (non-blocking)
+      // Airtime reward for rating >= 4 (fire-and-forget with error handling)
       if (rating >= 4) {
-        disburseAirtimeReward(load.transporter.id, load.transporter.phone, id);
+        disburseAirtimeReward(load.transporter.id, load.transporter.phone, id)
+          .catch((err) => console.error('[confirm-airtime]', err));
       }
     }
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import {
@@ -150,6 +151,7 @@ function UpdateStatusModal({ load, onClose }: UpdateModalProps) {
 }
 
 export default function JobsPage() {
+  const router = useRouter();
   const [filter, setFilter] = useState('ALL');
   const [modalLoad, setModalLoad] = useState<Load | null>(null);
 
@@ -260,7 +262,7 @@ export default function JobsPage() {
                 const shipperName = load.shipper?.company || load.shipper?.name || '—';
                 return (
                   <tr key={load.id} className="group cursor-pointer hover:bg-gray-50/60"
-                    onClick={() => window.location.href = `/dashboard/transporter/track/${load.id}`}
+                    onClick={() => router.push(`/dashboard/transporter/track/${load.id}`)}
                   >
                     {/* Load ID */}
                     <td>

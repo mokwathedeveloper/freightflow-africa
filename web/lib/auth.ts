@@ -11,8 +11,11 @@ export interface JWTPayload {
   exp?: number;
 }
 
-const ACCESS_SECRET = process.env.JWT_SECRET!;
-const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET!;
+if (!process.env.JWT_SECRET || !process.env.JWT_REFRESH_SECRET) {
+  throw new Error('JWT_SECRET and JWT_REFRESH_SECRET env vars must be set');
+}
+const ACCESS_SECRET = process.env.JWT_SECRET;
+const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
 
 export const signAccessToken = (payload: Omit<JWTPayload, 'iat' | 'exp'>): string =>
   jwt.sign(payload, ACCESS_SECRET, { expiresIn: '15m' });

@@ -4,6 +4,7 @@ import { verifyOTP } from '@/lib/services/otp.service';
 import { signAccessToken, signRefreshToken } from '@/lib/auth';
 import { otpSchema } from '@/lib/validators';
 import { ZodError } from 'zod';
+import { Prisma } from '@prisma/client';
 
 export async function POST(req: NextRequest) {
   try {
@@ -31,6 +32,9 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     if (err instanceof ZodError) {
       return NextResponse.json({ success: false, error: err.issues[0].message }, { status: 400 });
+    }
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2025') {
+      return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
     }
     return NextResponse.json({ success: false, error: 'Verification failed' }, { status: 500 });
   }

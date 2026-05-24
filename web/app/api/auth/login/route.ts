@@ -5,14 +5,20 @@ import { signAccessToken, signRefreshToken } from '@/lib/auth';
 import { loginSchema } from '@/lib/validators';
 import { ZodError } from 'zod';
 
+// Bcrypt hash of a dummy password — ensures comparePassword always runs to prevent timing attacks
+const DUMMY_HASH = '$2b$12$dummy.hash.to.prevent.timing.attacks.XXXXXXXXXXXXXXXXX';
+
 export async function POST(req: NextRequest) {
   try {
     const { phone, password } = loginSchema.parse(await req.json());
 
     const user = await prisma.user.findUnique({ where: { phone } });
 
-    // Constant-time response regardless of whether user exists or password is wrong
-    if (!user || !user.isVerified || !(await comparePassword(password, user.passwordHash))) {
+    // Always run comparePassword to prevent timing-based user enumeration
+    const hash = user?.passwordHash ?? DUMMY_HASH;
+    const passwordMatch = await comparePassword(password, hash);
+
+    if (!user || !user.isVerified || !passwordMatch) {
       return NextResponse.json({ success: false, error: 'Invalid phone number or password' }, { status: 401 });
     }
 

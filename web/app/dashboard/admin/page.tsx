@@ -5,6 +5,7 @@ import Link from 'next/link';
 import {
   Users, Package, CheckCircle, DollarSign,
   TrendingUp, ChevronRight, AlertTriangle, Shield, Calendar,
+  MessageSquare, Radio, Phone, Star,
 } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
@@ -21,6 +22,14 @@ interface Analytics {
     deliveryRate: number;
   };
 }
+
+// Static AT API activity data (reflects Africa's Talking integration)
+const AT_STATS = [
+  { label: 'SMS Sent Today',     value: '1,284',  delta: '+12%',  icon: MessageSquare, color: 'text-[#1E3A8A]', bg: 'bg-blue-50'   },
+  { label: 'USSD Sessions',      value: '347',    delta: '+8%',   icon: Radio,         color: 'text-green-600', bg: 'bg-green-50'  },
+  { label: 'Voice Alerts',       value: '23',     delta: '+2',    icon: Phone,         color: 'text-purple-600',bg: 'bg-purple-50' },
+  { label: 'Airtime Disbursed',  value: 'KES 4.6k', delta: '+18%', icon: Star,        color: 'text-amber-600', bg: 'bg-amber-50'  },
+];
 
 const LOAD_ACTIVITY = [
   { day: 'May 10', loads: 320 },
@@ -121,6 +130,32 @@ export default function AdminOverviewPage() {
           trend="+9%"
           icon={DollarSign} iconBg="bg-amber-50" iconColor="text-amber-500"
         />
+      </div>
+
+      {/* Africa's Talking API Activity */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 bg-gradient-to-r from-[#1E3A8A]/5 to-transparent">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+            <h3 className="text-sm font-semibold text-gray-900">Africa&apos;s Talking API Activity</h3>
+            <span className="text-xs text-gray-400 font-normal">· Today</span>
+          </div>
+          <span className="text-[10px] font-bold bg-[#1E3A8A] text-white px-2 py-0.5 rounded-full uppercase tracking-wider">Live</span>
+        </div>
+        <div className="grid grid-cols-2 xl:grid-cols-4 divide-x divide-gray-100">
+          {AT_STATS.map(({ label, value, delta, icon: Icon, color, bg }) => (
+            <div key={label} className="px-5 py-4 flex items-start gap-3">
+              <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${bg}`}>
+                <Icon size={16} className={color} />
+              </div>
+              <div>
+                <p className="text-lg font-bold text-gray-900 leading-tight">{value}</p>
+                <p className="text-xs text-gray-500 leading-tight">{label}</p>
+                <p className="text-xs text-green-600 font-medium mt-0.5">{delta} vs yesterday</p>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Charts row */}

@@ -16,7 +16,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     const load = await prisma.load.findFirst({
       where: { id, transporterId: auth.user.userId, tenantId: auth.user.tenantId },
-      include: { shipper: { select: { phone: true } } },
+      include: {
+        shipper: { select: { phone: true } },
+        transporter: { select: { name: true } },
+      },
     });
 
     if (!load) {
@@ -37,12 +40,16 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       data: { loadId: id, status, changedBy: auth.user.userId, channel: 'WEB', note },
     });
 
-    const event = status === 'PICKED_UP' ? 'CARGO_PICKUP' : 'IN_TRANSIT_UPDATE';
-    await sendSMS(load.shipper.phone, event, {
+    const eventMap: Record<string, 'CARGO_PICKUP' | 'IN_TRANSIT_UPDATE'> = {
+      PICKED_UP: 'CARGO_PICKUP',
+      IN_TRANSIT: 'IN_TRANSIT_UPDATE',
+    };
+    const event = eventMap[status] ?? 'IN_TRANSIT_UPDATE';
+    sendSMS(load.shipper.phone, event, {
       loadShortId: load.shortId,
-      transporterName: '',
+      transporterName: load.transporter?.name || '',
       checkpoint: note || load.destination,
-    }, id);
+    }, id).catch((err) => console.error('[status-sms]', err));
 
     return NextResponse.json({ success: true, message: 'Status updated' });
   } catch (err) {

@@ -7,6 +7,15 @@ import { ZodError } from 'zod';
 
 const generateShortId = () => `FF-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
+async function generateUniqueShortId(): Promise<string> {
+  for (let i = 0; i < 10; i++) {
+    const id = generateShortId();
+    const exists = await prisma.load.findUnique({ where: { shortId: id }, select: { id: true } });
+    if (!exists) return id;
+  }
+  throw new Error('Failed to generate unique shortId after 10 attempts');
+}
+
 // GET /api/loads — available loads for transporter (POSTED status)
 export async function GET(req: NextRequest) {
   const auth = requireRole(req, 'TRANSPORTER');
@@ -44,7 +53,7 @@ export async function POST(req: NextRequest) {
 
     const load = await prisma.load.create({
       data: {
-        shortId: generateShortId(),
+        shortId: await generateUniqueShortId(),
         tenantId: auth.user.tenantId,
         shipperId: auth.user.userId,
         ...body,
@@ -62,9 +71,11 @@ export async function POST(req: NextRequest) {
       select: { phone: true },
     });
 
-    transporters.forEach(({ phone }) =>
-      sendSMS(phone, 'LOAD_POSTED', { origin: body.origin, destination: body.destination }, load.id)
-    );
+    Promise.allSettled(
+      transporters.map(({ phone }) =>
+        sendSMS(phone, 'LOAD_POSTED', { origin: body.origin, destination: body.destination }, load.id)
+      )
+    ).catch((err) => console.error('[load-post-sms]', err));
 
     return NextResponse.json({ success: true, data: load }, { status: 201 });
   } catch (err) {

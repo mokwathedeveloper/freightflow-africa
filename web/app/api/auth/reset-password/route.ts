@@ -7,6 +7,9 @@ export async function POST(req: NextRequest) {
   try {
     const { phone, otp, newPassword } = await req.json();
 
+    if (!phone || !otp) {
+      return NextResponse.json({ success: false, error: 'Missing phone or code' }, { status: 400 });
+    }
     if (!newPassword || newPassword.length < 8) {
       return NextResponse.json({ success: false, error: 'Password must be at least 8 characters' }, { status: 400 });
     }

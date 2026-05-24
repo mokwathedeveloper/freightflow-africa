@@ -16,7 +16,8 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ success: true, data: { accessToken } });
-  } catch {
+  } catch (err) {
+    console.error('[refresh-token]', err);
     return NextResponse.json({ success: false, error: 'Invalid refresh token' }, { status: 401 });
   }
 }

@@ -52,11 +52,12 @@ export default function RegisterPage() {
   } = useForm<FormData>({ resolver: zodResolver(schema) });
 
   useEffect(() => {
-    const stored = sessionStorage.getItem('selectedRole') as 'SHIPPER' | 'TRANSPORTER' | null;
-    if (!stored) {
+    const stored = sessionStorage.getItem('selectedRole');
+    const allowed: ('SHIPPER' | 'TRANSPORTER')[] = ['SHIPPER', 'TRANSPORTER'];
+    if (!stored || !allowed.includes(stored as 'SHIPPER' | 'TRANSPORTER')) {
       router.replace('/auth/role');
     } else {
-      setRole(stored);
+      setRole(stored as 'SHIPPER' | 'TRANSPORTER');
     }
   }, [router]);
 

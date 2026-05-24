@@ -297,7 +297,10 @@ export default function AdminLoadsPage() {
             >
               <ChevronLeft size={13} />
             </button>
-            {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map((p) => (
+            {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+              const start = Math.max(1, Math.min(page - 2, totalPages - 4));
+              return start + i;
+            }).filter((p) => p >= 1 && p <= totalPages).map((p) => (
               <button
                 key={p}
                 onClick={() => setPage(p)}

@@ -88,7 +88,7 @@ export default function ShipperPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold text-gray-900">
-            Welcome back, {user?.name.split(' ')[0]}
+            Welcome back, {user?.name?.split(' ')[0] ?? 'there'}
           </h2>
           <p className="text-sm text-gray-500 mt-0.5">Here&apos;s your freight overview</p>
         </div>

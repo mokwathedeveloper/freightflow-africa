@@ -4,6 +4,7 @@ import { hashPassword } from '@/lib/hash';
 import { sendPhoneOTP } from '@/lib/services/otp.service';
 import { registerSchema } from '@/lib/validators';
 import { ZodError } from 'zod';
+import { Prisma } from '@prisma/client';
 
 export async function POST(req: NextRequest) {
   try {
@@ -44,6 +45,9 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     if (err instanceof ZodError) {
       return NextResponse.json({ success: false, error: err.issues[0].message }, { status: 400 });
+    }
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+      return NextResponse.json({ success: false, error: 'Phone number already registered' }, { status: 409 });
     }
     console.error('[register]', err);
     return NextResponse.json({ success: false, error: 'Registration failed' }, { status: 500 });

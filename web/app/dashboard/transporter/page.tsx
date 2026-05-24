@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import {
   Briefcase, CheckCircle, Star, Search,
-  ChevronRight, TrendingUp, Truck,
+  ChevronRight, TrendingUp, Truck, Zap,
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -51,19 +51,20 @@ function KpiCard({
 function buildChartData(loads: Load[]) {
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const now = new Date();
-  const buckets: Record<string, number> = {};
+  const buckets: Record<string, { label: string; jobs: number }> = {};
   for (let i = 5; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    buckets[`${months[d.getMonth()]}`] = 0;
+    const key = `${d.getFullYear()}-${d.getMonth()}`;
+    buckets[key] = { label: months[d.getMonth()], jobs: 0 };
   }
   loads
     .filter((l) => l.status === 'DELIVERED')
     .forEach((l) => {
       const d = new Date(l.createdAt);
-      const key = months[d.getMonth()];
-      if (key in buckets) buckets[key]++;
+      const key = `${d.getFullYear()}-${d.getMonth()}`;
+      if (key in buckets) buckets[key].jobs++;
     });
-  return Object.entries(buckets).map(([month, jobs]) => ({ month, jobs }));
+  return Object.values(buckets).map(({ label, jobs }) => ({ month: label, jobs }));
 }
 
 export default function TransporterPage() {
@@ -89,7 +90,7 @@ export default function TransporterPage() {
       {/* Welcome banner */}
       <div className="bg-[#1E3A8A] rounded-xl p-6 text-white flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold">Welcome back, {user?.name.split(' ')[0]}</h2>
+          <h2 className="text-xl font-bold">Welcome back, {user?.name?.split(' ')[0] ?? 'there'}</h2>
           <p className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.75)' }}>
             {user?.vehicleType ?? 'Transporter'} · {user?.numberPlate ?? 'Registered'}
           </p>
@@ -165,6 +166,42 @@ export default function TransporterPage() {
               <p className="text-xs text-gray-500 mt-1">Update status from any phone</p>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Airtime Rewards Tracker — unique AT API differentiator */}
+      <div className="bg-gradient-to-br from-[#1E3A8A] to-[#1e40af] rounded-xl p-5 text-white">
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <Zap size={14} className="text-amber-300" />
+              <p className="text-xs font-bold text-white/80 uppercase tracking-widest">Airtime Rewards</p>
+            </div>
+            <p className="text-2xl font-black">
+              KES {delivered >= 4 ? (Math.floor(delivered / 1) * 20).toLocaleString() : '0'}
+            </p>
+            <p className="text-sm text-white/70 mt-0.5">Earned for on-time deliveries (rated ≥ 4★)</p>
+          </div>
+          <div className="text-right">
+            <p className="text-xs text-white/60 mb-1">Next reward</p>
+            <div className="bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-center">
+              <p className="text-base font-bold">+KES 20</p>
+              <p className="text-xs text-white/60 mt-0.5">per delivery</p>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 text-xs text-white/60">
+          <div className="flex items-center gap-1.5">
+            <CheckCircle size={12} className="text-green-300" />
+            <span>{delivered} deliveries completed</span>
+          </div>
+          <div className="w-1 h-1 rounded-full bg-white/30" />
+          <div className="flex items-center gap-1.5">
+            <Star size={12} className="text-amber-300" />
+            <span>Rating: {rating} ({ratingCount} reviews)</span>
+          </div>
+          <div className="w-1 h-1 rounded-full bg-white/30" />
+          <span>Via Africa&apos;s Talking Airtime API</span>
         </div>
       </div>
 

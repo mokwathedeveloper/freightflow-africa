@@ -15,6 +15,7 @@ export function DashboardHeader({ title, notificationCount = 0, onMenuClick }: P
   const router = useRouter();
   const { user } = useAuthStore();
   const [search, setSearch] = useState('');
+  const safeRole = user?.role?.toLowerCase() || 'shipper';
 
   const initials = user?.name
     ? user.name.split(' ').map((n: string) => n[0]).slice(0, 2).join('').toUpperCase()
@@ -39,16 +40,18 @@ export function DashboardHeader({ title, notificationCount = 0, onMenuClick }: P
           <Search size={15} className="absolute left-3 text-gray-400 pointer-events-none" />
           <input
             type="text"
-            placeholder="Search..."
+            placeholder="Search (coming soon)"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 pr-4 h-9 w-52 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#1E3A8A] focus:ring-2 focus:ring-[#1E3A8A]/10 transition-colors"
+            disabled
+            aria-label="Search — coming soon"
+            className="pl-9 pr-4 h-9 w-52 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-400 placeholder:text-gray-400 outline-none cursor-not-allowed opacity-60"
           />
         </div>
 
         {/* Notification bell */}
         <button
-          onClick={() => router.push(`/dashboard/${user?.role?.toLowerCase()}/notifications`)}
+          onClick={() => router.push(`/dashboard/${safeRole}/notifications`)}
           className="relative p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
           aria-label="Notifications"
         >
@@ -62,7 +65,7 @@ export function DashboardHeader({ title, notificationCount = 0, onMenuClick }: P
 
         {/* Avatar */}
         <button
-          onClick={() => router.push(`/dashboard/${user?.role?.toLowerCase()}/settings`)}
+          onClick={() => router.push(`/dashboard/${safeRole}/settings`)}
           className="flex items-center gap-2 rounded-lg px-2 py-1 hover:bg-gray-100 transition-colors"
         >
           <div className="w-8 h-8 rounded-full bg-[#1E3A8A] flex items-center justify-center text-xs font-semibold text-white">
