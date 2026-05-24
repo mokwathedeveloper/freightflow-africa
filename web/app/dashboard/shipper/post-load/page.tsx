@@ -6,7 +6,7 @@ import { useForm, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useQueryClient } from '@tanstack/react-query';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ArrowRight, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { CARGO_TYPES, VEHICLE_TYPES, KENYAN_CITIES } from '@/constants';
@@ -14,20 +14,20 @@ import api from '@/lib/api';
 import { useToastStore } from '@/store/toast.store';
 
 const schema = z.object({
-  origin: z.string().min(1, 'Origin is required'),
-  destination: z.string().min(1, 'Destination is required'),
-  cargoType: z.string().min(1, 'Cargo type is required'),
-  weight: z.coerce.number().positive('Weight must be > 0'),
-  deliveryDate: z.string().min(1, 'Delivery date is required'),
-  notes: z.string().optional(),
+  origin:           z.string().min(1, 'Origin is required'),
+  destination:      z.string().min(1, 'Destination is required'),
+  cargoType:        z.string().min(1, 'Cargo type is required'),
+  weight:           z.coerce.number().positive('Weight must be greater than 0'),
+  deliveryDate:     z.string().min(1, 'Delivery date is required'),
+  notes:            z.string().optional(),
   preferredVehicle: z.string().optional(),
 });
 
 type FormData = z.infer<typeof schema>;
 
 export default function PostLoadPage() {
-  const router = useRouter();
-  const qc = useQueryClient();
+  const router  = useRouter();
+  const qc      = useQueryClient();
   const addToast = useToastStore((s) => s.addToast);
   const [loading, setLoading] = useState(false);
 
@@ -38,7 +38,7 @@ export default function PostLoadPage() {
     formState: { errors },
   } = useForm<FormData>({ resolver: zodResolver(schema) as Resolver<FormData> });
 
-  const origin = watch('origin');
+  const origin      = watch('origin');
   const destination = watch('destination');
 
   async function onSubmit(data: FormData) {
@@ -67,108 +67,136 @@ export default function PostLoadPage() {
   const minDate = tomorrow.toISOString().split('T')[0];
 
   return (
-    <div className="max-w-xl">
-      <div className="mb-5">
-        <h2 className="text-lg font-semibold text-foreground">Post a New Load</h2>
-        <p className="text-sm text-muted-foreground mt-0.5">
-          Transporters will be notified via SMS when you post.
+    <div className="max-w-2xl mx-auto space-y-5">
+
+      {/* Page header */}
+      <div>
+        <h2 className="text-xl font-bold text-gray-900">Post a New Load</h2>
+        <p className="text-sm text-gray-500 mt-0.5">
+          Matching transporters will be notified via SMS instantly.
         </p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="bg-card rounded-xl border border-border p-5 space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="Origin" error={errors.origin?.message}>
-            <select {...register('origin')} className={sel(!!errors.origin)}>
-              <option value="">Select city</option>
-              {KENYAN_CITIES.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          </Field>
+      <form onSubmit={handleSubmit(onSubmit)} noValidate>
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 space-y-5">
 
-          <Field label="Destination" error={errors.destination?.message}>
-            <select {...register('destination')} className={sel(!!errors.destination)}>
-              <option value="">Select city</option>
-              {KENYAN_CITIES.filter((c) => c !== origin).map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          </Field>
-        </div>
+          {/* Route */}
+          <div>
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">Route Details</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="ff-label">Origin City</label>
+                <select {...register('origin')} className={cn('ff-input', errors.origin && 'ff-input-error')}>
+                  <option value="">Select origin city</option>
+                  {KENYAN_CITIES.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+                {errors.origin && <p className="ff-error">{errors.origin.message}</p>}
+              </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="Cargo Type" error={errors.cargoType?.message}>
-            <select {...register('cargoType')} className={sel(!!errors.cargoType)}>
-              <option value="">Select type</option>
-              {CARGO_TYPES.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          </Field>
+              <div>
+                <label className="ff-label">Destination City</label>
+                <select {...register('destination')} className={cn('ff-input', errors.destination && 'ff-input-error')}>
+                  <option value="">Select destination city</option>
+                  {KENYAN_CITIES.filter((c) => c !== origin).map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+                {errors.destination && <p className="ff-error">{errors.destination.message}</p>}
+              </div>
+            </div>
 
-          <Field label="Weight (tonnes)" error={errors.weight?.message}>
-            <input
-              {...register('weight')}
-              type="number"
-              step="0.1"
-              min="0.1"
-              placeholder="e.g. 2.5"
-              className={inp(!!errors.weight)}
-            />
-          </Field>
-        </div>
-
-        <Field label="Required by Date" error={errors.deliveryDate?.message}>
-          <input
-            {...register('deliveryDate')}
-            type="date"
-            min={minDate}
-            className={inp(!!errors.deliveryDate)}
-          />
-        </Field>
-
-        <Field label="Preferred Vehicle (optional)" error={undefined}>
-          <select {...register('preferredVehicle')} className={sel(false)}>
-            <option value="">Any vehicle</option>
-            {VEHICLE_TYPES.map((v) => (
-              <option key={v} value={v}>{v}</option>
-            ))}
-          </select>
-        </Field>
-
-        <Field label="Notes (optional)" error={undefined}>
-          <textarea
-            {...register('notes')}
-            placeholder="Special instructions, fragile items, access restrictions..."
-            rows={3}
-            className={cn(inp(false), 'h-auto resize-none py-2')}
-          />
-        </Field>
-
-        {origin && destination && (
-          <div className="rounded-lg bg-blue-50 border border-blue-200 px-4 py-3 text-sm text-blue-700">
-            Route: <strong>{origin} → {destination}</strong>
+            {origin && destination && (
+              <div className="mt-3 flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-4 py-2.5 text-sm text-[#1E3A8A]">
+                <MapPin size={14} />
+                <strong>{origin}</strong>
+                <ArrowRight size={14} />
+                <strong>{destination}</strong>
+              </div>
+            )}
           </div>
-        )}
 
-        <Button type="submit" disabled={loading} className="w-full h-10">
-          {loading ? <Loader2 className="animate-spin" size={16} /> : 'Post Load & Notify Transporters'}
-        </Button>
+          {/* Cargo */}
+          <div>
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">Cargo Details</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="ff-label">Cargo Type</label>
+                <select {...register('cargoType')} className={cn('ff-input', errors.cargoType && 'ff-input-error')}>
+                  <option value="">Select cargo type</option>
+                  {CARGO_TYPES.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+                {errors.cargoType && <p className="ff-error">{errors.cargoType.message}</p>}
+              </div>
+
+              <div>
+                <label className="ff-label">Weight (tonnes)</label>
+                <input
+                  {...register('weight')}
+                  type="number"
+                  step="0.1"
+                  min="0.1"
+                  placeholder="e.g. 2.5"
+                  className={cn('ff-input', errors.weight && 'ff-input-error')}
+                />
+                {errors.weight && <p className="ff-error">{errors.weight.message}</p>}
+              </div>
+            </div>
+          </div>
+
+          {/* Logistics */}
+          <div>
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">Logistics</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="ff-label">Required by Date</label>
+                <input
+                  {...register('deliveryDate')}
+                  type="date"
+                  min={minDate}
+                  className={cn('ff-input', errors.deliveryDate && 'ff-input-error')}
+                />
+                {errors.deliveryDate && <p className="ff-error">{errors.deliveryDate.message}</p>}
+              </div>
+
+              <div>
+                <label className="ff-label">Preferred Vehicle <span className="text-gray-400 font-normal">(optional)</span></label>
+                <select {...register('preferredVehicle')} className="ff-input">
+                  <option value="">Any vehicle type</option>
+                  {VEHICLE_TYPES.map((v) => (
+                    <option key={v} value={v}>{v}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div>
+            <label className="ff-label">Additional Notes <span className="text-gray-400 font-normal">(optional)</span></label>
+            <textarea
+              {...register('notes')}
+              placeholder="Special instructions, fragile items, access restrictions..."
+              rows={3}
+              className="ff-input h-auto resize-none py-2.5"
+            />
+          </div>
+
+          {/* SMS notice */}
+          <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-3 text-sm text-green-700">
+            <strong>SMS Notification:</strong> Matching transporters will receive an SMS alert immediately after posting.
+          </div>
+
+          <Button type="submit" disabled={loading} className="w-full h-10">
+            {loading
+              ? <><Loader2 className="animate-spin" size={16} /> Posting...</>
+              : 'Post Load & Notify Transporters'}
+          </Button>
+        </div>
       </form>
     </div>
   );
 }
-
-function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
-  return (
-    <div className="space-y-1.5">
-      <label className="text-sm font-medium text-foreground">{label}</label>
-      {children}
-      {error && <p className="text-xs text-destructive">{error}</p>}
-    </div>
-  );
-}
-
-const base = 'w-full h-10 rounded-lg border bg-background px-3 text-sm text-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20';
-const inp = (err: boolean) => cn(base, err ? 'border-destructive' : 'border-border');
-const sel = (err: boolean) => cn(base, err ? 'border-destructive' : 'border-border');
