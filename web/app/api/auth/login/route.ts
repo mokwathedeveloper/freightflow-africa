@@ -1,17 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import bcrypt from 'bcryptjs';
 import { comparePassword } from '@/lib/hash';
 import { signAccessToken, signRefreshToken } from '@/lib/auth';
-import { loginSchema } from '@/lib/validators';
-import { ZodError } from 'zod';
+import { ZodError, z } from 'zod';
 
-// Valid bcrypt hash — ensures comparePassword always runs to prevent timing-based user enumeration
-const DUMMY_HASH = bcrypt.hashSync('__dummy_password_not_used__', 12);
+// Normalise phone: accepts 07XXXXXXXX, 254XXXXXXXXX, +254XXXXXXXXX → +254XXXXXXXXX
+function normalizePhone(raw: string): string {
+  const digits = raw.replace(/\s/g, '');
+  if (digits.startsWith('+254')) return digits;
+  if (digits.startsWith('254'))  return `+${digits}`;
+  if (digits.startsWith('0'))    return `+254${digits.slice(1)}`;
+  return digits;
+}
+
+const loginSchema = z.object({
+  phone:    z.string().min(1, 'Phone number is required'),
+  password: z.string().min(1, 'Password is required'),
+});
+
+// Pre-computed bcrypt hash of '__dummy__' (cost 10) — comparePassword always runs to prevent
+// timing-based user enumeration. Pre-computed so no sync bcrypt at module load time.
+const DUMMY_HASH = '$2b$10$gQavec90z44ff6bqsojIK.aku0TpmHY5oeXTJJK7aljSbKNDabv7G';
 
 export async function POST(req: NextRequest) {
   try {
-    const { phone, password } = loginSchema.parse(await req.json());
+    const body = loginSchema.parse(await req.json());
+    const phone = normalizePhone(body.phone);
+    const { password } = body;
 
     const user = await prisma.user.findUnique({ where: { phone } });
 
@@ -39,6 +54,7 @@ export async function POST(req: NextRequest) {
     if (err instanceof ZodError) {
       return NextResponse.json({ success: false, error: err.issues[0].message }, { status: 400 });
     }
+    console.error('[login]', err);
     return NextResponse.json({ success: false, error: 'Login failed' }, { status: 500 });
   }
 }
