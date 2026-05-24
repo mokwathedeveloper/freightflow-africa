@@ -57,7 +57,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ success: true, message: 'Delivery confirmed successfully' });
   } catch (err) {
     if (err instanceof ZodError) {
-      return NextResponse.json({ success: false, error: err.errors[0].message }, { status: 400 });
+      return NextResponse.json({ success: false, error: err.issues[0].message }, { status: 400 });
     }
     return NextResponse.json({ success: false, error: 'Confirmation failed' }, { status: 500 });
   }
