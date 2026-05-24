@@ -6,7 +6,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Truck, Eye, EyeOff, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
@@ -47,7 +46,7 @@ export default function LoginPage() {
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
-        'Login failed. Check your credentials and try again.';
+        'Incorrect phone number or password.';
       addToast('error', msg);
     } finally {
       setLoading(false);
@@ -58,18 +57,19 @@ export default function LoginPage() {
     <main className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
 
-        {/* Logo */}
+        {/* Brand */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 bg-[#1E3A8A] rounded-xl mb-4 shadow-lg">
+          <div className="inline-flex items-center justify-center w-12 h-12 bg-[#1E3A8A] rounded-xl mb-4 shadow-md">
             <Truck className="text-white" size={22} />
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Welcome back</h1>
-          <p className="text-sm text-gray-500 mt-1">Sign in to your FreightFlow account</p>
+          <p className="text-sm text-gray-500 mt-1">Login to continue</p>
         </div>
 
         {/* Card */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+
             <div>
               <label className="ff-label">Phone Number</label>
               <input
@@ -84,7 +84,7 @@ export default function LoginPage() {
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-sm font-medium text-gray-700">Password</label>
-                <Link href="/auth/reset" className="text-xs text-[#1E3A8A] hover:underline">
+                <Link href="/auth/reset" className="text-xs text-[#1E3A8A] hover:underline font-medium">
                   Forgot password?
                 </Link>
               </div>
@@ -99,6 +99,7 @@ export default function LoginPage() {
                   type="button"
                   onClick={() => setShowPassword((s) => !s)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
@@ -106,16 +107,20 @@ export default function LoginPage() {
               {errors.password && <p className="ff-error">{errors.password.message}</p>}
             </div>
 
-            <Button type="submit" disabled={loading} className="w-full h-10 mt-1">
-              {loading ? <><Loader2 className="animate-spin" size={15} /> Signing in...</> : 'Sign In'}
-            </Button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn-primary w-full h-10 mt-1"
+            >
+              {loading ? <><Loader2 className="animate-spin" size={15} /> Signing in...</> : 'Log In'}
+            </button>
           </form>
         </div>
 
         <p className="text-center text-sm text-gray-500 mt-5">
-          Don&apos;t have an account?{' '}
+          New here?{' '}
           <Link href="/auth/role" className="text-[#1E3A8A] font-semibold hover:underline">
-            Create one
+            Sign up
           </Link>
         </p>
       </div>

@@ -1,12 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
-import { Package, ChevronRight, Search, Filter } from 'lucide-react';
+import { Package, ChevronRight, Search, Filter, AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
 import LoadStatusBadge from '@/components/ui/LoadStatusBadge';
 import { formatDate } from '@/lib/utils';
 import api from '@/lib/api';
+import { useToastStore } from '@/store/toast.store';
 import type { Load, LoadStatus } from '@/types';
 
 interface MyLoadsResponse {
@@ -23,15 +24,41 @@ const FILTERS: { label: string; value: LoadStatus | 'ALL' }[] = [
 ];
 
 export default function ShipmentsPage() {
+  const qc = useQueryClient();
+  const addToast = useToastStore((s) => s.addToast);
   const [filter, setFilter] = useState<LoadStatus | 'ALL'>('ALL');
   const [search, setSearch] = useState('');
+  const [actingId, setActingId] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery<MyLoadsResponse>({
     queryKey: ['shipper-loads'],
     queryFn: () => api.get('/loads/my?limit=100').then((r) => r.data),
   });
 
+  const confirmMut = useMutation({
+    mutationFn: (id: string) => api.post(`/loads/${id}/confirm`, { rating: 5 }),
+    onMutate: (id) => setActingId(id),
+    onSettled: () => setActingId(null),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['shipper-loads'] });
+      addToast('success', 'Delivery confirmed. Thank you!');
+    },
+    onError: () => addToast('error', 'Failed to confirm delivery. Please try again.'),
+  });
+
+  const disputeMut = useMutation({
+    mutationFn: (id: string) => api.post(`/loads/${id}/dispute`, { description: 'Delivery issue reported from shipments page. Please review.' }),
+    onMutate: (id) => setActingId(id),
+    onSettled: () => setActingId(null),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['shipper-loads'] });
+      addToast('success', 'Issue reported. Our team will follow up.');
+    },
+    onError: () => addToast('error', 'Failed to report issue. Please try again.'),
+  });
+
   const allLoads = data?.data.loads ?? [];
+  const awaitingLoads = allLoads.filter((l) => l.status === 'AWAITING_CONFIRMATION');
   const loads = allLoads
     .filter((l) => filter === 'ALL' || l.status === filter)
     .filter(
@@ -51,6 +78,46 @@ export default function ShipmentsPage() {
         <h2 className="text-xl font-bold text-gray-900">My Shipments</h2>
         <p className="text-sm text-gray-500 mt-0.5">Track and manage all your loads</p>
       </div>
+
+      {/* AWAITING_CONFIRMATION banners */}
+      {awaitingLoads.map((load) => (
+        <div
+          key={load.id}
+          className="bg-amber-50 border border-amber-300 rounded-xl px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-4"
+        >
+          <AlertTriangle size={18} className="text-amber-500 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-amber-900">
+              Delivery confirmation required — Load #{load.shortId}
+            </p>
+            <p className="text-sm text-amber-700 mt-0.5">
+              Your driver reported delivery
+              {load.deliveredAt ? ` on ${formatDate(load.deliveredAt)}` : ''}.
+              Please confirm receipt or report an issue.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => disputeMut.mutate(load.id)}
+              disabled={actingId === load.id}
+              className="h-9 px-4 text-sm font-medium rounded-lg border-2 border-red-500 text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+            >
+              {actingId === load.id && disputeMut.isPending
+                ? <Loader2 size={14} className="animate-spin" />
+                : 'Report Issue'}
+            </button>
+            <button
+              onClick={() => confirmMut.mutate(load.id)}
+              disabled={actingId === load.id}
+              className="h-9 px-4 text-sm font-medium rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+            >
+              {actingId === load.id && confirmMut.isPending
+                ? <Loader2 size={14} className="animate-spin" />
+                : <><CheckCircle size={14} /> Confirm Delivery</>}
+            </button>
+          </div>
+        </div>
+      ))}
 
       {/* Filters bar */}
       <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 flex flex-col sm:flex-row gap-3 items-start sm:items-center">

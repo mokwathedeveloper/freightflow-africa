@@ -21,5 +21,5 @@ export async function GET(req: NextRequest) {
     orderBy: { createdAt: 'desc' },
   });
 
-  return NextResponse.json({ success: true, data: loads });
+  return NextResponse.json({ success: true, data: { loads, total: loads.length } });
 }

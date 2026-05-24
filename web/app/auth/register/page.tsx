@@ -6,29 +6,33 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Truck, Eye, EyeOff, ArrowLeft, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { VEHICLE_TYPES } from '@/constants';
 import api from '@/lib/api';
 import { useToastStore } from '@/store/toast.store';
+import Link from 'next/link';
 
-const baseSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters'),
-  phone: z
-    .string()
-    .regex(/^\+254[17]\d{8}$/, 'Phone must be in format +254XXXXXXXXX'),
-  email: z.email('Invalid email address').optional().or(z.literal('')),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-  confirmPassword: z.string(),
-  company: z.string().optional(),
-  vehicleType: z.string().optional(),
-  numberPlate: z.string().optional(),
-});
-
-const schema = baseSchema.refine((d) => d.password === d.confirmPassword, {
-  message: "Passwords don't match",
-  path: ['confirmPassword'],
-});
+const schema = z
+  .object({
+    name: z.string().min(2, 'Name must be at least 2 characters'),
+    phone: z
+      .string()
+      .regex(/^\+254[17]\d{8}$/, 'Format: +254XXXXXXXXX (e.g. +254712345678)'),
+    email: z.string().email('Invalid email address').optional().or(z.literal('')),
+    company: z.string().optional(),
+    vehicleType: z.string().optional(),
+    numberPlate: z.string().optional(),
+    password: z
+      .string()
+      .min(8, 'Password must be at least 8 characters')
+      .regex(/[A-Z]/, 'Must contain at least one uppercase letter')
+      .regex(/[0-9]/, 'Must contain at least one number'),
+    confirmPassword: z.string(),
+  })
+  .refine((d) => d.password === d.confirmPassword, {
+    message: "Passwords don't match",
+    path: ['confirmPassword'],
+  });
 
 type FormData = z.infer<typeof schema>;
 
@@ -43,6 +47,7 @@ export default function RegisterPage() {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<FormData>({ resolver: zodResolver(schema) });
 
@@ -68,7 +73,6 @@ export default function RegisterPage() {
         vehicleType: data.vehicleType || undefined,
         numberPlate: data.numberPlate || undefined,
       });
-      addToast('success', 'OTP sent to ' + data.phone);
       sessionStorage.setItem('verifyPhone', data.phone);
       router.push('/auth/verify');
     } catch (err: unknown) {
@@ -81,165 +85,201 @@ export default function RegisterPage() {
     }
   }
 
+  const passwordValue = watch('password', '');
+  const strength = getPasswordStrength(passwordValue);
+
   if (!role) return null;
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <main className="min-h-screen bg-gray-50 flex items-center justify-center p-4 py-8">
+      <div className="w-full max-w-sm">
+
+        {/* Brand */}
         <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-10 h-10 bg-primary rounded-xl mb-3">
-            <Truck className="text-primary-foreground" size={20} />
+          <div className="inline-flex items-center justify-center w-12 h-12 bg-[#1E3A8A] rounded-xl mb-3 shadow-md">
+            <Truck className="text-white" size={22} />
           </div>
-          <h1 className="text-xl font-bold text-foreground">Create your account</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h1 className="text-xl font-bold text-gray-900">Create your account</h1>
+          <p className="text-sm text-gray-500 mt-1">
             Registering as a{' '}
-            <span className="font-medium capitalize text-foreground">{role.toLowerCase()}</span>
+            <span className="font-semibold text-[#1E3A8A] capitalize">{role.toLowerCase()}</span>
           </p>
         </div>
 
-        <div className="bg-card rounded-2xl shadow-sm border border-border p-6">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <Field label="Full Name" error={errors.name?.message}>
+        {/* Card */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+
+            {/* Full Name */}
+            <div>
+              <label className="ff-label">Full Name</label>
               <input
                 {...register('name')}
-                placeholder="John Kamau"
-                className={inputClass(!!errors.name)}
+                placeholder="e.g. John Kamau"
+                className={cn('ff-input', errors.name && 'ff-input-error')}
               />
-            </Field>
+              {errors.name && <p className="ff-error">{errors.name.message}</p>}
+            </div>
 
-            <Field label="Phone Number" error={errors.phone?.message}>
+            {/* Phone */}
+            <div>
+              <label className="ff-label">Phone Number</label>
               <input
                 {...register('phone')}
-                placeholder="+254712345678"
                 type="tel"
-                className={inputClass(!!errors.phone)}
+                placeholder="+254712345678"
+                className={cn('ff-input', errors.phone && 'ff-input-error')}
               />
-            </Field>
+              {errors.phone && <p className="ff-error">{errors.phone.message}</p>}
+            </div>
 
-            <Field label="Email (optional)" error={errors.email?.message}>
+            {/* Email (optional for both roles) */}
+            <div>
+              <label className="ff-label">Email Address <span className="text-gray-400 font-normal">(optional)</span></label>
               <input
                 {...register('email')}
-                placeholder="john@example.com"
                 type="email"
-                className={inputClass(!!errors.email)}
+                placeholder="john@example.com"
+                className={cn('ff-input', errors.email && 'ff-input-error')}
               />
-            </Field>
+              {errors.email && <p className="ff-error">{errors.email.message}</p>}
+            </div>
 
+            {/* Shipper-only: Company */}
             {role === 'SHIPPER' && (
-              <Field label="Company Name (optional)" error={undefined}>
+              <div>
+                <label className="ff-label">Company Name <span className="text-gray-400 font-normal">(optional)</span></label>
                 <input
                   {...register('company')}
                   placeholder="ABC Logistics Ltd"
-                  className={inputClass(false)}
+                  className="ff-input"
                 />
-              </Field>
+              </div>
             )}
 
+            {/* Transporter-only: Vehicle + Plate */}
             {role === 'TRANSPORTER' && (
               <>
-                <Field label="Vehicle Type" error={errors.vehicleType?.message}>
-                  <select {...register('vehicleType')} className={inputClass(!!errors.vehicleType)}>
+                <div>
+                  <label className="ff-label">Vehicle Type</label>
+                  <select
+                    {...register('vehicleType')}
+                    className={cn('ff-input', errors.vehicleType && 'ff-input-error')}
+                  >
                     <option value="">Select vehicle type</option>
                     {VEHICLE_TYPES.map((v) => (
                       <option key={v} value={v}>{v}</option>
                     ))}
                   </select>
-                </Field>
+                  {errors.vehicleType && <p className="ff-error">{errors.vehicleType.message}</p>}
+                </div>
 
-                <Field label="Number Plate" error={errors.numberPlate?.message}>
+                <div>
+                  <label className="ff-label">Number Plate</label>
                   <input
                     {...register('numberPlate')}
                     placeholder="KAA 123A"
-                    className={inputClass(!!errors.numberPlate)}
+                    className={cn('ff-input uppercase', errors.numberPlate && 'ff-input-error')}
                   />
-                </Field>
+                  {errors.numberPlate && <p className="ff-error">{errors.numberPlate.message}</p>}
+                </div>
               </>
             )}
 
-            <Field label="Password" error={errors.password?.message}>
+            {/* Password */}
+            <div>
+              <label className="ff-label">Password</label>
               <div className="relative">
                 <input
                   {...register('password')}
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Min. 8 characters"
-                  className={cn(inputClass(!!errors.password), 'pr-10')}
+                  placeholder="Min. 8 chars, 1 uppercase, 1 number"
+                  className={cn('ff-input pr-10', errors.password && 'ff-input-error')}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((s) => !s)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
-            </Field>
+              {errors.password && <p className="ff-error">{errors.password.message}</p>}
+              {/* Strength indicator */}
+              {passwordValue && (
+                <div className="mt-1.5 flex items-center gap-2">
+                  <div className="flex gap-1 flex-1">
+                    {[1, 2, 3].map((level) => (
+                      <div
+                        key={level}
+                        className={cn(
+                          'h-1 flex-1 rounded-full transition-colors',
+                          strength >= level
+                            ? level === 1 ? 'bg-red-500' : level === 2 ? 'bg-amber-400' : 'bg-green-500'
+                            : 'bg-gray-200'
+                        )}
+                      />
+                    ))}
+                  </div>
+                  <span className={cn('text-xs', strength === 1 && 'text-red-500', strength === 2 && 'text-amber-500', strength === 3 && 'text-green-600')}>
+                    {strength === 1 ? 'Weak' : strength === 2 ? 'Medium' : 'Strong'}
+                  </span>
+                </div>
+              )}
+            </div>
 
-            <Field label="Confirm Password" error={errors.confirmPassword?.message}>
+            {/* Confirm Password */}
+            <div>
+              <label className="ff-label">Confirm Password</label>
               <div className="relative">
                 <input
                   {...register('confirmPassword')}
                   type={showConfirm ? 'text' : 'password'}
-                  placeholder="Repeat password"
-                  className={cn(inputClass(!!errors.confirmPassword), 'pr-10')}
+                  placeholder="Repeat your password"
+                  className={cn('ff-input pr-10', errors.confirmPassword && 'ff-input-error')}
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirm((s) => !s)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
-                  {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                  {showConfirm ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
-            </Field>
+              {errors.confirmPassword && <p className="ff-error">{errors.confirmPassword.message}</p>}
+            </div>
 
-            <Button
+            <button
               type="submit"
               disabled={loading}
-              className="w-full h-10 mt-2"
+              className="btn-primary w-full h-10 mt-1"
             >
-              {loading ? <Loader2 className="animate-spin" size={16} /> : 'Create Account'}
-            </Button>
+              {loading ? <><Loader2 className="animate-spin" size={15} /> Sending code...</> : 'Send Verification Code'}
+            </button>
           </form>
         </div>
 
-        <div className="flex items-center justify-between mt-4 text-sm text-muted-foreground px-1">
+        <div className="flex items-center justify-between mt-4 px-1">
           <button
             onClick={() => router.back()}
-            className="flex items-center gap-1 hover:text-foreground transition-colors"
+            className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800 transition-colors"
           >
             <ArrowLeft size={14} /> Back
           </button>
-          <a href="/auth/login" className="text-primary hover:underline">
+          <Link href="/auth/login" className="text-sm text-[#1E3A8A] hover:underline">
             Already have an account?
-          </a>
+          </Link>
         </div>
       </div>
     </main>
   );
 }
 
-function Field({
-  label,
-  error,
-  children,
-}: {
-  label: string;
-  error?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <label className="text-sm font-medium text-foreground">{label}</label>
-      {children}
-      {error && <p className="text-xs text-destructive">{error}</p>}
-    </div>
-  );
-}
-
-function inputClass(hasError: boolean) {
-  return cn(
-    'w-full h-10 rounded-lg border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors',
-    'focus:border-primary focus:ring-2 focus:ring-primary/20',
-    hasError ? 'border-destructive focus:border-destructive focus:ring-destructive/20' : 'border-border'
-  );
+function getPasswordStrength(password: string): number {
+  if (!password) return 0;
+  let score = 0;
+  if (password.length >= 8) score++;
+  if (/[A-Z]/.test(password) && /[0-9]/.test(password)) score++;
+  if (password.length >= 12 && /[^A-Za-z0-9]/.test(password)) score++;
+  return Math.max(score, password.length >= 8 ? 1 : 0);
 }
