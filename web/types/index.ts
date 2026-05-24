@@ -47,7 +47,7 @@ export interface Load {
   confirmedAt?: string;
   createdAt: string;
   shipper?: Pick<User, 'name' | 'phone' | 'company'>;
-  transporter?: Pick<User, 'name' | 'phone' | 'vehicleType' | 'numberPlate' | 'rating'>;
+  transporter?: Pick<User, 'name' | 'phone' | 'vehicleType' | 'numberPlate' | 'rating' | 'ratingCount'>;
   statusLogs?: StatusLog[];
 }
 
