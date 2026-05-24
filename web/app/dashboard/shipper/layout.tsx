@@ -1,18 +1,19 @@
 'use client';
 
 import { useState } from 'react';
-import { LayoutDashboard, Package, PlusCircle, Bell, Settings, MapPin } from 'lucide-react';
+import { LayoutDashboard, Package, PlusCircle, Bell, Settings, CreditCard, FileText } from 'lucide-react';
 import { DashboardSidebar } from '@/components/layout/DashboardSidebar';
 import { DashboardHeader } from '@/components/layout/DashboardHeader';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 
 const NAV = [
-  { href: '/dashboard/shipper',               label: 'Overview',      icon: LayoutDashboard },
+  { href: '/dashboard/shipper',               label: 'Dashboard',     icon: LayoutDashboard },
   { href: '/dashboard/shipper/post-load',     label: 'Post a Load',   icon: PlusCircle },
   { href: '/dashboard/shipper/shipments',     label: 'My Shipments',  icon: Package },
-  { href: '/dashboard/shipper/track',         label: 'Track Cargo',   icon: MapPin },
   { href: '/dashboard/shipper/notifications', label: 'Notifications', icon: Bell },
+  { href: '/dashboard/shipper/documents',     label: 'Cross-Border',  icon: FileText },
+  { href: '/dashboard/shipper/billing',       label: 'Billing',       icon: CreditCard },
   { href: '/dashboard/shipper/settings',      label: 'Settings',      icon: Settings },
 ];
 
