@@ -9,6 +9,7 @@ import { useToastStore } from '@/store/toast.store';
 import DataTable, { Column } from '@/components/Table/DataTable';
 import FilterDropdown from '@/components/Filters/FilterDropdown';
 import Modal from '@/components/Modal/Modal';
+import ConfirmModal from '@/components/modals/ConfirmModal';
 
 interface AdminUser {
   id: string;
@@ -381,41 +382,16 @@ export default function AdminUsersPage() {
       </Modal>
 
       {/* Delete confirmation modal */}
-      <Modal
+      <ConfirmModal
         isOpen={!!deleteUser}
         onClose={() => setDeleteUser(null)}
         title="Delete User"
-        size="sm"
-      >
-        {deleteUser && (
-          <div className="space-y-4">
-            <div className="flex items-center gap-3 p-3 bg-red-50 border border-red-100 rounded-lg">
-              <Trash2 size={16} className="text-red-600 shrink-0" />
-              <p className="text-sm text-red-700">
-                This will permanently delete{' '}
-                <strong>{deleteUser.name}</strong> and all their data.
-                This cannot be undone.
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => deleteMut.mutate(deleteUser.id)}
-                disabled={deleteMut.isPending}
-                className="flex-1 h-9 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-60 transition-colors"
-              >
-                {deleteMut.isPending ? 'Deleting...' : 'Delete User'}
-              </button>
-              <button
-                onClick={() => setDeleteUser(null)}
-                disabled={deleteMut.isPending}
-                className="flex-1 h-9 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
-      </Modal>
+        description={deleteUser ? `This will permanently delete ${deleteUser.name} and all their data. This cannot be undone.` : undefined}
+        confirmLabel="Delete User"
+        isDangerous
+        isPending={deleteMut.isPending}
+        onConfirm={() => deleteUser && deleteMut.mutate(deleteUser.id)}
+      />
     </div>
   );
 }
