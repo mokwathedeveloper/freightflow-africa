@@ -38,6 +38,7 @@ export interface Load {
   weight: number;
   deliveryDate: string;
   notes?: string;
+  preferredVehicle?: string;
   lastLocation?: string;
   rating?: number;
   acceptedAt?: string;
@@ -47,7 +48,7 @@ export interface Load {
   confirmedAt?: string;
   createdAt: string;
   shipper?: Pick<User, 'name' | 'phone' | 'company'>;
-  transporter?: Pick<User, 'name' | 'phone' | 'vehicleType' | 'numberPlate' | 'rating'>;
+  transporter?: Pick<User, 'name' | 'phone' | 'vehicleType' | 'numberPlate' | 'rating' | 'ratingCount'>;
   statusLogs?: StatusLog[];
 }
 
@@ -83,4 +84,28 @@ export interface ApiResponse<T = unknown> {
   data?: T;
   message?: string;
   error?: string;
+}
+
+export type DocStatus = 'PENDING' | 'UNDER_REVIEW' | 'VERIFIED' | 'REJECTED';
+export type DocType =
+  | 'COMMERCIAL_INVOICE'
+  | 'PACKING_LIST'
+  | 'BILL_OF_LADING'
+  | 'CUSTOMS_DECLARATION'
+  | 'OTHER';
+
+export interface Document {
+  id: string;
+  tenantId: string;
+  userId: string;
+  loadId?: string;
+  type: DocType;
+  status: DocStatus;
+  fileUrl: string;
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  rejectNote?: string;
+  createdAt: string;
+  updatedAt: string;
 }
