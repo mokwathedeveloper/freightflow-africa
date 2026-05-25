@@ -53,3 +53,44 @@ export async function PATCH(
     return NextResponse.json({ success: false, error: 'Failed to update user' }, { status: 500 });
   }
 }
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const auth = requireRole(req, 'ADMIN');
+    if ('error' in auth) return auth.error;
+
+    const { id } = await params;
+
+    const deleted = await prisma.$transaction(async (tx) => {
+      const target = await tx.user.findFirst({
+        where: { id, tenantId: auth.user.tenantId },
+      });
+      if (!target) return null;
+      if (target.role === 'ADMIN') {
+        throw new Error('Cannot delete admin accounts');
+      }
+      return tx.user.delete({ where: { id } });
+    });
+
+    if (!deleted) {
+      return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
+    }
+
+    logAudit({
+      userId: auth.user.userId,
+      tenantId: auth.user.tenantId,
+      action: 'USER_DELETED',
+      resource: 'User',
+      resourceId: id,
+      ipAddress: req.headers.get('x-forwarded-for') ?? undefined,
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Failed to delete user';
+    return NextResponse.json({ success: false, error: msg }, { status: 500 });
+  }
+}
