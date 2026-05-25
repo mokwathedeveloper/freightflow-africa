@@ -2,36 +2,30 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  Bell, CheckCheck, Loader2, Truck, CheckCircle,
-  AlertTriangle, Package, Info, MapPin,
-} from 'lucide-react';
-import { formatDateTime, cn } from '@/lib/utils';
+import { Bell, CheckCheck, Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import api from '@/lib/api';
 import type { Notification } from '@/types';
+import NotificationCard, {
+  NotificationDetailModal,
+  CHANNEL_LABEL,
+} from '@/components/notifications/NotificationCard';
 
 interface NotificationsResponse {
   data: { notifications: Notification[] };
 }
 
-// Tabs matching shared_pages.md: All | Loads | Tracking | System
 const TABS = ['All', 'Loads', 'Tracking', 'System'] as const;
 type Tab = typeof TABS[number];
 
-function notifIcon(title: string) {
-  const t = title.toLowerCase();
-  if (t.includes('transit') || t.includes('pickup') || t.includes('picked') || t.includes('location'))
-    return { icon: MapPin,        bg: 'bg-amber-50',   color: 'text-amber-600' };
-  if (t.includes('accept') || t.includes('assign'))
-    return { icon: Truck,         bg: 'bg-blue-50',    color: 'text-[#1E3A8A]' };
-  if (t.includes('deliver') || t.includes('confirm'))
-    return { icon: CheckCircle,   bg: 'bg-green-50',   color: 'text-green-600' };
-  if (t.includes('dispute') || t.includes('delay') || t.includes('issue') || t.includes('alert'))
-    return { icon: AlertTriangle, bg: 'bg-red-50',     color: 'text-red-600' };
-  if (t.includes('load') || t.includes('post') || t.includes('cargo'))
-    return { icon: Package,       bg: 'bg-purple-50',  color: 'text-purple-600' };
-  return   { icon: Info,          bg: 'bg-gray-50',    color: 'text-gray-500' };
-}
+type ChannelFilter = '' | 'SMS' | 'IN_APP' | 'VOICE';
+
+const CHANNEL_OPTIONS: { value: ChannelFilter; label: string }[] = [
+  { value: '',       label: 'All Channels' },
+  { value: 'SMS',    label: CHANNEL_LABEL.SMS },
+  { value: 'IN_APP', label: CHANNEL_LABEL.IN_APP },
+  { value: 'VOICE',  label: CHANNEL_LABEL.VOICE },
+];
 
 function isTracking(title: string) {
   const t = title.toLowerCase();
@@ -51,8 +45,10 @@ function isSystem(title: string) {
 }
 
 export default function ShipperNotificationsPage() {
-  const qc  = useQueryClient();
-  const [tab, setTab] = useState<Tab>('All');
+  const qc = useQueryClient();
+  const [tab,           setTab]           = useState<Tab>('All');
+  const [channel,       setChannel]       = useState<ChannelFilter>('');
+  const [selectedNotif, setSelectedNotif] = useState<Notification | null>(null);
 
   const { data, isLoading } = useQuery<NotificationsResponse>({
     queryKey: ['notifications'],
@@ -75,14 +71,20 @@ export default function ShipperNotificationsPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
   });
 
-  const all          = data?.data.notifications ?? [];
-  const unreadCount  = all.filter((n) => !n.isRead).length;
+  function handleCardClick(n: Notification) {
+    setSelectedNotif(n);
+    if (!n.isRead) markReadMut.mutate(n.id);
+  }
+
+  const all         = data?.data.notifications ?? [];
+  const unreadCount = all.filter((n) => !n.isRead).length;
 
   const filtered = all.filter((n) => {
-    if (tab === 'Loads')    return isLoads(n.title);
-    if (tab === 'Tracking') return isTracking(n.title);
-    if (tab === 'System')   return isSystem(n.title);
-    return true; // All
+    if (tab === 'Loads'    && !isLoads(n.title))    return false;
+    if (tab === 'Tracking' && !isTracking(n.title)) return false;
+    if (tab === 'System'   && !isSystem(n.title))   return false;
+    if (channel && n.channel !== channel)            return false;
+    return true;
   });
 
   return (
@@ -99,9 +101,7 @@ export default function ShipperNotificationsPage() {
               </span>
             )}
           </h2>
-          <p className="text-sm text-gray-500 mt-0.5">
-            Load updates, alerts, and system messages
-          </p>
+          <p className="text-sm text-gray-500 mt-0.5">Load updates, alerts, and system messages</p>
         </div>
         {unreadCount > 0 && (
           <button
@@ -143,9 +143,26 @@ export default function ShipperNotificationsPage() {
           ))}
         </div>
 
+        {/* Channel filter strip */}
+        <div className="flex items-center gap-1.5 px-5 py-2.5 border-b border-gray-100 overflow-x-auto">
+          {CHANNEL_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setChannel(opt.value)}
+              className={cn(
+                'text-xs font-medium px-3 py-1 rounded-full border transition-colors whitespace-nowrap',
+                channel === opt.value
+                  ? 'bg-[#1E3A8A] text-white border-[#1E3A8A]'
+                  : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
         {/* Content */}
         {isLoading ? (
-          // Skeleton loaders
           <div className="divide-y divide-gray-100">
             {[...Array(4)].map((_, i) => (
               <div key={i} className="flex items-start gap-4 px-5 py-4 animate-pulse">
@@ -165,84 +182,41 @@ export default function ShipperNotificationsPage() {
               <Bell size={26} className="text-gray-300" />
             </div>
             <p className="text-sm font-semibold text-gray-700">
-              {tab === 'All' ? "You're all caught up!" : `No ${tab.toLowerCase()} notifications`}
+              {tab === 'All' && !channel ? "You're all caught up!" : 'No matching notifications'}
             </p>
             <p className="text-xs text-gray-400 mt-1.5 max-w-xs mx-auto leading-relaxed">
-              {tab === 'All'
+              {tab === 'All' && !channel
                 ? 'Load updates will appear here and via SMS.'
-                : 'Switch to All to see all your notifications.'}
+                : 'Try a different tab or channel filter.'}
             </p>
           </div>
         ) : (
           <div className="divide-y divide-gray-100">
-            {filtered.map((n) => {
-              const { icon: Icon, bg, color } = notifIcon(n.title);
-              return (
-                <div
-                  key={n.id}
-                  className={cn(
-                    'flex items-start gap-4 px-5 py-4 transition-colors hover:bg-gray-50/60 cursor-default',
-                    !n.isRead && 'bg-blue-50/30'
-                  )}
-                >
-                  {/* Unread dot */}
-                  <div className={cn(
-                    'w-2 h-2 rounded-full mt-2.5 shrink-0 transition-colors',
-                    n.isRead ? 'bg-transparent' : 'bg-[#1E3A8A]'
-                  )} />
-
-                  {/* Type icon */}
-                  <div className={cn(
-                    'w-9 h-9 rounded-lg flex items-center justify-center shrink-0',
-                    bg
-                  )}>
-                    <Icon size={16} className={color} />
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <p className={cn(
-                      'text-sm font-medium leading-snug',
-                      n.isRead ? 'text-gray-700' : 'text-gray-900'
-                    )}>
-                      {n.title}
-                    </p>
-                    <p className="text-sm text-gray-500 mt-0.5 leading-relaxed line-clamp-2">
-                      {n.body}
-                    </p>
-                    <div className="flex items-center gap-2.5 mt-1.5">
-                      <span className="text-xs text-gray-400">{formatDateTime(n.createdAt)}</span>
-                      <span className="inline-flex items-center text-xs bg-green-50 text-green-700 border border-green-200 px-1.5 py-0.5 rounded-full font-medium">
-                        SMS
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Mark read */}
-                  {!n.isRead && (
-                    <button
-                      onClick={() => markReadMut.mutate(n.id)}
-                      disabled={markReadMut.isPending}
-                      className="text-gray-300 hover:text-[#1E3A8A] transition-colors shrink-0 mt-1"
-                      title="Mark as read"
-                    >
-                      <CheckCheck size={16} />
-                    </button>
-                  )}
-                </div>
-              );
-            })}
+            {filtered.map((n) => (
+              <NotificationCard
+                key={n.id}
+                notification={n}
+                onMarkRead={(id) => markReadMut.mutate(id)}
+                isMarkingRead={markReadMut.isPending}
+                onClick={handleCardClick}
+              />
+            ))}
           </div>
         )}
       </div>
 
-      {/* All notifications count */}
       {!isLoading && all.length > 0 && (
         <p className="text-center text-xs text-gray-400">
           {all.length} notification{all.length !== 1 ? 's' : ''} total
           {unreadCount > 0 && ` · ${unreadCount} unread`}
         </p>
       )}
+
+      {/* Notification detail modal */}
+      <NotificationDetailModal
+        notification={selectedNotif}
+        onClose={() => setSelectedNotif(null)}
+      />
     </div>
   );
 }
