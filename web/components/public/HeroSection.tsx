@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Zap } from 'lucide-react';
 import CTAButton from './CTAButton';
 import HeroMockup from './HeroMockup';
@@ -7,9 +8,11 @@ interface HeroSectionProps {
   headline: string;
   greenSpan: string;
   subheadline: string;
+  /** Override the right column. Pass an <Image> or any element. Defaults to HeroMockup. */
+  rightContent?: ReactNode;
 }
 
-export default function HeroSection({ badge, headline, greenSpan, subheadline }: HeroSectionProps) {
+export default function HeroSection({ badge, headline, greenSpan, subheadline, rightContent }: HeroSectionProps) {
   return (
     <section className="relative bg-[#1E3A8A] text-white overflow-hidden">
       <div
@@ -45,7 +48,7 @@ export default function HeroSection({ badge, headline, greenSpan, subheadline }:
             </CTAButton>
           </div>
         </div>
-        <HeroMockup />
+        {rightContent ?? <HeroMockup />}
       </div>
     </section>
   );
