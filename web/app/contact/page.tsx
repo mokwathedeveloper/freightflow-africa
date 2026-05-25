@@ -1,11 +1,7 @@
-'use client';
-
-import { useState } from 'react';
-import { Mail, Phone, MessageCircle, MapPin, Send, Loader2, CheckCircle } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import api from '@/lib/api';
+import { Mail, Phone, MessageCircle, MapPin } from 'lucide-react';
 import PublicNavbar from '@/components/layout/PublicNavbar';
 import PublicFooter from '@/components/layout/PublicFooter';
+import ContactForm from '@/components/public/ContactForm';
 
 const CONTACT_CARDS = [
   {
@@ -42,51 +38,7 @@ const CONTACT_CARDS = [
   },
 ];
 
-const SUBJECTS = [
-  'General Inquiry',
-  'Technical Support',
-  'Billing & Payments',
-  'Partnership',
-  'Press & Media',
-  'Other',
-];
-
 export default function ContactPage() {
-  const [form, setForm] = useState({ name: '', email: '', phone: '', subject: '', message: '' });
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(false);
-  const [sent, setSent] = useState(false);
-
-  function validate() {
-    const e: Record<string, string> = {};
-    if (!form.name.trim() || form.name.trim().length < 2) e.name = 'Please enter your full name';
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = 'Please enter a valid email address';
-    if (form.phone && !/^\+254[0-9]{9}$/.test(form.phone)) e.phone = 'Use format +254XXXXXXXXX';
-    if (!form.subject) e.subject = 'Please select a subject';
-    if (!form.message.trim() || form.message.trim().length < 20) e.message = 'Message must be at least 20 characters';
-    setErrors(e);
-    return Object.keys(e).length === 0;
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!validate()) return;
-    setLoading(true);
-    try {
-      await api.post('/contact', form);
-      setSent(true);
-    } catch {
-      setErrors({ message: 'Failed to send message. Please try again.' });
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function field(key: keyof typeof form, value: string) {
-    setForm((f) => ({ ...f, [key]: value }));
-    if (errors[key]) setErrors((err) => { const next = { ...err }; delete next[key]; return next; });
-  }
-
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <PublicNavbar />
@@ -114,7 +66,7 @@ export default function ContactPage() {
               className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 hover:shadow-md transition-shadow text-center group"
             >
               <div className={`w-11 h-11 rounded-xl flex items-center justify-center mx-auto mb-3 ${bg}`}>
-                <Icon size={18} />
+                <Icon size={18} aria-hidden="true" />
               </div>
               <h3 className="font-semibold text-gray-900 text-sm mb-0.5">{title}</h3>
               <p className="text-xs text-gray-700 font-medium">{detail}</p>
@@ -130,97 +82,7 @@ export default function ContactPage() {
 
           {/* Form */}
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
-            {sent ? (
-              <div className="flex flex-col items-center justify-center h-full text-center py-10">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-5">
-                  <CheckCircle size={28} className="text-[#16A34A]" />
-                </div>
-                <h2 className="text-xl font-bold text-gray-900 mb-2">Message sent!</h2>
-                <p className="text-sm text-gray-500 max-w-xs">
-                  Thanks for reaching out. We&apos;ll reply to <strong>{form.email}</strong> within 24 hours.
-                </p>
-                <button
-                  onClick={() => { setSent(false); setForm({ name: '', email: '', phone: '', subject: '', message: '' }); }}
-                  className="mt-6 text-sm text-[#1E3A8A] hover:underline"
-                >
-                  Send another message
-                </button>
-              </div>
-            ) : (
-              <>
-                <h2 className="text-lg font-bold text-gray-900 mb-1">Send us a message</h2>
-                <p className="text-sm text-gray-500 mb-6">We read every message and reply within one business day.</p>
-                <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-                  <div>
-                    <label className="ff-label">Full Name</label>
-                    <input
-                      value={form.name}
-                      onChange={(e) => field('name', e.target.value)}
-                      placeholder="John Kamau"
-                      className={cn('ff-input', errors.name && 'ff-input-error')}
-                    />
-                    {errors.name && <p className="ff-error">{errors.name}</p>}
-                  </div>
-                  <div>
-                    <label className="ff-label">Email Address</label>
-                    <input
-                      type="email"
-                      value={form.email}
-                      onChange={(e) => field('email', e.target.value)}
-                      placeholder="john@example.com"
-                      className={cn('ff-input', errors.email && 'ff-input-error')}
-                    />
-                    {errors.email && <p className="ff-error">{errors.email}</p>}
-                  </div>
-                  <div>
-                    <label className="ff-label">Phone Number <span className="text-gray-400 font-normal">(optional)</span></label>
-                    <input
-                      type="tel"
-                      value={form.phone}
-                      onChange={(e) => field('phone', e.target.value)}
-                      placeholder="+254712345678"
-                      className={cn('ff-input', errors.phone && 'ff-input-error')}
-                    />
-                    {errors.phone && <p className="ff-error">{errors.phone}</p>}
-                  </div>
-                  <div>
-                    <label className="ff-label">Subject</label>
-                    <select
-                      value={form.subject}
-                      onChange={(e) => field('subject', e.target.value)}
-                      className={cn('ff-input', errors.subject && 'ff-input-error')}
-                    >
-                      <option value="">Select a subject</option>
-                      {SUBJECTS.map((s) => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                    {errors.subject && <p className="ff-error">{errors.subject}</p>}
-                  </div>
-                  <div>
-                    <label className="ff-label">Message</label>
-                    <textarea
-                      value={form.message}
-                      onChange={(e) => field('message', e.target.value)}
-                      placeholder="Tell us how we can help you..."
-                      rows={5}
-                      className={cn(
-                        'w-full rounded-md border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400',
-                        'outline-none transition-colors resize-none',
-                        'focus:border-[#16A34A] focus:ring-2 focus:ring-[#16A34A]/20',
-                        errors.message && 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
-                      )}
-                    />
-                    {errors.message && <p className="ff-error">{errors.message}</p>}
-                  </div>
-                  <button type="submit" disabled={loading} className="btn-primary w-full h-11">
-                    {loading ? (
-                      <><Loader2 className="animate-spin" size={15} /> Sending...</>
-                    ) : (
-                      <><Send size={15} /> Send Message</>
-                    )}
-                  </button>
-                </form>
-              </>
-            )}
+            <ContactForm />
           </div>
 
           {/* Map placeholder + extra info */}
@@ -244,15 +106,15 @@ export default function ContactPage() {
               <h3 className="font-semibold mb-3">FreightFlow HQ</h3>
               <div className="space-y-2.5">
                 <div className="flex gap-2.5 items-start">
-                  <MapPin size={14} className="text-white/60 mt-0.5 shrink-0" />
+                  <MapPin size={14} className="text-white/60 mt-0.5 shrink-0" aria-hidden="true" />
                   <p className="text-sm text-white/80">Westlands Business Centre, Nairobi, Kenya</p>
                 </div>
                 <div className="flex gap-2.5 items-start">
-                  <Phone size={14} className="text-white/60 mt-0.5 shrink-0" />
+                  <Phone size={14} className="text-white/60 mt-0.5 shrink-0" aria-hidden="true" />
                   <p className="text-sm text-white/80">+254 712 345 678</p>
                 </div>
                 <div className="flex gap-2.5 items-start">
-                  <Mail size={14} className="text-white/60 mt-0.5 shrink-0" />
+                  <Mail size={14} className="text-white/60 mt-0.5 shrink-0" aria-hidden="true" />
                   <p className="text-sm text-white/80">hello@freightflow.co.ke</p>
                 </div>
               </div>

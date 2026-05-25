@@ -1,68 +1,18 @@
-import Link from 'next/link';
 import {
-  Truck, Package, MessageSquare, Radio,
-  Zap, Shield, MapPin, Phone, Star,
-  CheckCircle, Clock, Globe, ChevronRight,
+  Truck, Package,
+  Zap, Phone,
+  CheckCircle, Clock,
   X, BarChart2, TrendingUp as TrendingUpIcon,
 } from 'lucide-react';
 import PublicNavbar from '@/components/layout/PublicNavbar';
 import PublicFooter from '@/components/layout/PublicFooter';
+import FeatureCard from '@/components/public/FeatureCard';
+import TestimonialCard from '@/components/public/TestimonialCard';
+import CTAButton from '@/components/public/CTAButton';
+import { PLATFORM_FEATURES, AT_API_FEATURES } from '@/data/features';
+import { TESTIMONIALS } from '@/data/testimonials';
 
-// ─── Data ─────────────────────────────────────────────────────────────────────
-const FEATURES = [
-  {
-    icon: Package,
-    title: 'Post Loads',
-    desc: 'Create a load in under 60 seconds. Set origin, destination, cargo type, and weight — transporters are alerted instantly via SMS.',
-    color: 'bg-blue-50 text-[#1E3A8A]',
-  },
-  {
-    icon: MapPin,
-    title: 'Real-time Tracking',
-    desc: 'Follow your cargo from pickup to delivery. Status updates via web or USSD — no internet required for drivers.',
-    color: 'bg-green-50 text-[#16A34A]',
-  },
-  {
-    icon: Shield,
-    title: 'Secure & Reliable',
-    desc: 'Every transaction is logged. Dispute resolution built in. Ratings after every delivery keep the network trustworthy.',
-    color: 'bg-purple-50 text-purple-600',
-  },
-  {
-    icon: Globe,
-    title: 'Cross-Border Ready',
-    desc: 'Support for Kenya, Uganda, Tanzania and beyond. Multi-currency, multilingual — built for the East African corridor.',
-    color: 'bg-amber-50 text-amber-600',
-  },
-];
-
-const AT_APIS = [
-  {
-    icon: MessageSquare,
-    label: 'SMS API',
-    desc: 'Instant load alerts, OTP authentication, delivery confirmations to both parties.',
-    color: 'bg-blue-50 text-[#1E3A8A]',
-  },
-  {
-    icon: Radio,
-    label: 'USSD API',
-    desc: 'Dial *384*7447# on any basic phone. Update status without internet.',
-    color: 'bg-green-50 text-[#16A34A]',
-  },
-  {
-    icon: Phone,
-    label: 'Voice API',
-    desc: 'Automated call alerts for critical events — delays, disputes, high-value deliveries.',
-    color: 'bg-purple-50 text-purple-600',
-  },
-  {
-    icon: Star,
-    label: 'Airtime API',
-    desc: 'KES 20 airtime reward disbursed automatically to transporters who deliver on time.',
-    color: 'bg-amber-50 text-amber-600',
-  },
-];
-
+// ─── Static page data ──────────────────────────────────────────────────────────
 const HOW_IT_WORKS = [
   {
     step: '01',
@@ -84,33 +34,6 @@ const HOW_IT_WORKS = [
   },
 ];
 
-const TESTIMONIALS = [
-  {
-    name: 'James Otieno',
-    role: 'Logistics Manager, Nairobi',
-    quote: 'FreightFlow cut our empty return trips by 40%. The SMS alerts mean our drivers never miss a load opportunity.',
-    rating: 5,
-    initials: 'JO',
-    bg: 'bg-blue-100 text-[#1E3A8A]',
-  },
-  {
-    name: 'Amina Hassan',
-    role: 'Shipper, Mombasa',
-    quote: 'I can track my container from Mombasa to Kampala without calling anyone. Game changer for cross-border trade.',
-    rating: 5,
-    initials: 'AH',
-    bg: 'bg-green-100 text-[#16A34A]',
-  },
-  {
-    name: 'Peter Kamau',
-    role: 'Truck Owner-Operator',
-    quote: 'Even on a basic phone via USSD I can update delivery status. The airtime reward is a great bonus!',
-    rating: 5,
-    initials: 'PK',
-    bg: 'bg-purple-100 text-purple-600',
-  },
-];
-
 const TRUST_STATS = [
   { value: '2,400+', label: 'Active Loads' },
   { value: '850+',   label: 'Transporters' },
@@ -125,7 +48,6 @@ const MARKET_STATS = [
   { value: '0',       label: 'Competitors with USSD',       icon: X, color: 'text-red-500' },
 ];
 
-// Competitor comparison data
 const COMPETITORS = ['Kobo360', 'Lori Systems', 'Trella', 'Amitruck'];
 type FeatureRow = { feature: string; freightflow: boolean; others: boolean; note?: string };
 const FEATURE_MATRIX: FeatureRow[] = [
@@ -266,7 +188,7 @@ export default function Home() {
           {/* Text */}
           <div>
             <div className="inline-flex items-center gap-2 bg-white/10 text-white/90 text-xs font-semibold px-3 py-1.5 rounded-full mb-6">
-              <Zap size={12} /> Africa&apos;s Talking Hackathon 2026 · Nairobi
+              <Zap size={12} aria-hidden="true" /> Africa&apos;s Talking Hackathon 2026 · Nairobi
             </div>
             <h1 className="text-4xl sm:text-5xl font-bold leading-tight mb-5">
               Move Cargo.<br />
@@ -277,24 +199,15 @@ export default function Home() {
               real time, and update delivery status from any phone — even without internet via USSD.
             </p>
             <div className="flex items-center gap-3 flex-wrap">
-              <Link
-                href="/auth/role"
-                className="inline-flex items-center gap-2 bg-white text-[#1E3A8A] font-semibold rounded-lg px-6 h-11 text-sm hover:bg-gray-100 transition-colors shadow-sm"
-              >
-                Sign Up Free <ChevronRight size={15} />
-              </Link>
-              <Link
-                href="#features"
-                className="inline-flex items-center gap-2 bg-white/10 text-white font-semibold rounded-lg px-6 h-11 text-sm hover:bg-white/20 transition-colors border border-white/20"
-              >
+              <CTAButton href="/auth/role" variant="primary" size="md" showArrow>
+                Sign Up Free
+              </CTAButton>
+              <CTAButton href="#features" variant="outline-white" size="md">
                 Learn More
-              </Link>
-              <Link
-                href="/contact"
-                className="inline-flex items-center gap-2 text-white/70 font-medium text-sm hover:text-white transition-colors"
-              >
-                Request Demo <ChevronRight size={13} />
-              </Link>
+              </CTAButton>
+              <CTAButton href="/contact" variant="ghost" size="md" showArrow>
+                Request Demo
+              </CTAButton>
             </div>
           </div>
 
@@ -326,14 +239,8 @@ export default function Home() {
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {FEATURES.map(({ icon: Icon, title, desc, color }) => (
-              <div key={title} className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 hover:shadow-md transition-shadow">
-                <div className={`w-11 h-11 rounded-xl flex items-center justify-center mb-4 ${color}`}>
-                  <Icon size={20} />
-                </div>
-                <h3 className="font-semibold text-gray-900 mb-2">{title}</h3>
-                <p className="text-sm text-gray-500 leading-relaxed">{desc}</p>
-              </div>
+            {PLATFORM_FEATURES.map((f) => (
+              <FeatureCard key={f.title} {...f} />
             ))}
           </div>
         </div>
@@ -369,14 +276,8 @@ export default function Home() {
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {AT_APIS.map(({ icon: Icon, label, desc, color }) => (
-              <div key={label} className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 hover:shadow-md transition-shadow">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-3 ${color}`}>
-                  <Icon size={18} />
-                </div>
-                <h3 className="font-semibold text-gray-900 mb-2 text-sm">{label}</h3>
-                <p className="text-xs text-gray-500 leading-relaxed">{desc}</p>
-              </div>
+            {AT_API_FEATURES.map((f) => (
+              <FeatureCard key={f.label} title={f.label} desc={f.desc} icon={f.icon} iconBg={f.iconBg} iconColor={f.iconColor} />
             ))}
           </div>
         </div>
@@ -399,7 +300,7 @@ export default function Home() {
                 <div className="flex items-center gap-3 mb-4">
                   <span className="text-3xl font-black text-gray-100">{step}</span>
                   <div className="w-10 h-10 bg-[#1E3A8A] rounded-lg flex items-center justify-center shrink-0">
-                    <Icon size={18} className="text-white" />
+                    <Icon size={18} className="text-white" aria-hidden="true" />
                   </div>
                 </div>
                 <h3 className="font-semibold text-gray-900 mb-2">{title}</h3>
@@ -416,7 +317,7 @@ export default function Home() {
           <div className="bg-[#1E3A8A] rounded-2xl p-8 sm:p-12 flex flex-col sm:flex-row items-start sm:items-center gap-8">
             <div className="flex-1 text-white">
               <div className="inline-flex items-center gap-2 bg-white/10 text-white/80 text-xs font-semibold px-3 py-1 rounded-full mb-4">
-                <Clock size={11} /> Inclusive Design
+                <Clock size={11} aria-hidden="true" /> Inclusive Design
               </div>
               <h2 className="text-2xl font-bold mb-3">No smartphone? No problem.</h2>
               <p className="text-white/80 text-sm leading-relaxed max-w-md">
@@ -452,7 +353,7 @@ export default function Home() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-10">
             {MARKET_STATS.map(({ value, label, icon: Icon, color }) => (
               <div key={label} className="bg-gray-50 border border-gray-200 rounded-xl p-4 text-center">
-                <Icon size={18} className={`${color} mx-auto mb-2`} />
+                <Icon size={18} className={`${color} mx-auto mb-2`} aria-hidden="true" />
                 <p className={`text-2xl font-black ${color}`}>{value}</p>
                 <p className="text-xs text-gray-500 mt-0.5 leading-tight">{label}</p>
               </div>
@@ -467,7 +368,7 @@ export default function Home() {
                 <span className="text-[#1E3A8A]">FreightFlow</span>
               </div>
               <div className="px-4 py-3 text-center border-l border-gray-200 text-gray-400">
-                Kobo360 / Lori / Trella
+                {COMPETITORS.slice(0, 3).join(' / ')}
               </div>
             </div>
             <div className="divide-y divide-gray-100">
@@ -479,13 +380,13 @@ export default function Home() {
                   </div>
                   <div className="px-4 py-3 flex justify-center border-l border-gray-100">
                     {freightflow
-                      ? <CheckCircle size={18} className="text-[#16A34A]" />
-                      : <X size={16} className="text-gray-300" />}
+                      ? <CheckCircle size={18} className="text-[#16A34A]" aria-label="Yes" />
+                      : <X size={16} className="text-gray-300" aria-label="No" />}
                   </div>
                   <div className="px-4 py-3 flex justify-center border-l border-gray-100">
                     {others
-                      ? <CheckCircle size={18} className="text-gray-400" />
-                      : <X size={16} className="text-red-400" />}
+                      ? <CheckCircle size={18} className="text-gray-400" aria-label="Yes" />
+                      : <X size={16} className="text-red-400" aria-label="No" />}
                   </div>
                 </div>
               ))}
@@ -507,24 +408,8 @@ export default function Home() {
             <h2 className="text-2xl font-bold text-gray-900">Trusted by logistics professionals</h2>
           </div>
           <div className="grid sm:grid-cols-3 gap-6">
-            {TESTIMONIALS.map(({ name, role, quote, rating, initials, bg }) => (
-              <div key={name} className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-                <div className="flex gap-0.5 mb-3">
-                  {Array.from({ length: rating }).map((_, i) => (
-                    <Star key={i} size={14} className="text-amber-400 fill-amber-400" />
-                  ))}
-                </div>
-                <p className="text-sm text-gray-600 leading-relaxed mb-5">&ldquo;{quote}&rdquo;</p>
-                <div className="flex items-center gap-3">
-                  <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${bg}`}>
-                    {initials}
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-900 text-sm">{name}</p>
-                    <p className="text-xs text-gray-500">{role}</p>
-                  </div>
-                </div>
-              </div>
+            {TESTIMONIALS.map((t) => (
+              <TestimonialCard key={t.name} {...t} />
             ))}
           </div>
         </div>
@@ -538,18 +423,12 @@ export default function Home() {
             Join FreightFlow — free for shippers and transporters. No app download needed.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link
-              href="/auth/role"
-              className="inline-flex items-center justify-center gap-2 bg-white text-[#1E3A8A] font-semibold rounded-lg px-8 h-11 text-sm hover:bg-gray-100 transition-colors"
-            >
-              Create Free Account <ChevronRight size={15} />
-            </Link>
-            <Link
-              href="/contact"
-              className="inline-flex items-center justify-center gap-2 bg-white/10 text-white font-semibold rounded-lg px-8 h-11 text-sm hover:bg-white/20 transition-colors border border-white/20"
-            >
+            <CTAButton href="/auth/role" variant="primary" size="md" showArrow>
+              Create Free Account
+            </CTAButton>
+            <CTAButton href="/contact" variant="outline-white" size="md">
               Talk to Sales
-            </Link>
+            </CTAButton>
           </div>
         </div>
       </section>
