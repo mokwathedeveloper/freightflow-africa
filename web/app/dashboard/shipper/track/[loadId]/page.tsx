@@ -3,8 +3,8 @@
 import { use, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  ArrowLeft, Loader2, Star, AlertTriangle, X,
-  Phone, Truck, Clock, Package, MapPin,
+  ArrowLeft, Loader2, Star, AlertTriangle,
+  Phone, Truck, Clock, Package, MapPin, Share2, Check,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -15,6 +15,7 @@ import api from '@/lib/api';
 import RouteMap from '@/components/tracking/RouteMap';
 import ProgressTimeline, { type TimelineStep } from '@/components/tracking/ProgressTimeline';
 import TrackingStatsBar from '@/components/tracking/TrackingStatsBar';
+import IssueReportModal from '@/components/tracking/IssueReportModal';
 import { useCargoTracking } from '@/hooks/useCargoTracking';
 
 const TIMELINE_STEPS: TimelineStep[] = [
@@ -34,7 +35,7 @@ export default function ShipperTrackPage({ params }: { params: Promise<{ loadId:
   const [rating,       setRating]       = useState(0);
   const [hoverRating,  setHoverRating]  = useState(0);
   const [disputeOpen,  setDisputeOpen]  = useState(false);
-  const [disputeText,  setDisputeText]  = useState('');
+  const [copied,       setCopied]       = useState(false);
 
   const { load, isLoading, isRefreshing, lastUpdated, refetch } = useCargoTracking(loadId);
 
@@ -57,6 +58,14 @@ export default function ShipperTrackPage({ params }: { params: Promise<{ loadId:
     },
     onError: () => addToast('error', 'Failed to raise dispute.'),
   });
+
+  function handleCopyLink() {
+    if (!load) return;
+    navigator.clipboard.writeText(`${window.location.origin}/track/${load.shortId}`).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
 
   const cancelMut = useMutation({
     mutationFn: () => api.post(`/loads/${loadId}/cancel`),
@@ -124,7 +133,15 @@ export default function ShipperTrackPage({ params }: { params: Promise<{ loadId:
           </div>
         </div>
 
-        <div className="flex gap-2 shrink-0">
+        <div className="flex gap-2 shrink-0 flex-wrap">
+          {/* Share tracking link */}
+          <button
+            onClick={handleCopyLink}
+            aria-label="Copy public tracking link"
+            className="btn-secondary text-xs h-8 px-3 flex items-center gap-1.5"
+          >
+            {copied ? <><Check size={12} className="text-green-500" /> Copied!</> : <><Share2 size={12} /> Share Tracking</>}
+          </button>
           {load.transporter && (
             <a
               href={`tel:${load.transporter.phone}`}
@@ -367,54 +384,13 @@ export default function ShipperTrackPage({ params }: { params: Promise<{ loadId:
       </div>
 
       {/* Report Issue Modal */}
-      {disputeOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="dispute-modal-title"
-        >
-          <div className="bg-white rounded-xl border border-gray-200 shadow-xl p-6 w-full max-w-md space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 id="dispute-modal-title" className="font-semibold text-gray-900">
-                Report an Issue
-              </h3>
-              <button
-                onClick={() => setDisputeOpen(false)}
-                className="text-gray-400 hover:text-gray-600"
-                aria-label="Close modal"
-              >
-                <X size={18} />
-              </button>
-            </div>
-            <p className="text-sm text-gray-500">Describe the issue with this delivery.</p>
-            <textarea
-              value={disputeText}
-              onChange={(e) => setDisputeText(e.target.value)}
-              placeholder="e.g. Goods arrived damaged, wrong items delivered, late delivery..."
-              rows={4}
-              className="ff-input h-auto resize-none py-2.5"
-              aria-label="Issue description"
-              autoFocus
-            />
-            <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setDisputeOpen(false)} className="flex-1">
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                disabled={!disputeText.trim() || disputeMut.isPending}
-                onClick={() => disputeMut.mutate(disputeText.trim())}
-                className="flex-1"
-              >
-                {disputeMut.isPending
-                  ? <Loader2 className="animate-spin" size={14} />
-                  : 'Submit Report'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <IssueReportModal
+        isOpen={disputeOpen}
+        onClose={() => setDisputeOpen(false)}
+        onSubmit={(description) => disputeMut.mutate(description)}
+        isPending={disputeMut.isPending}
+        loadRef={load.shortId}
+      />
     </div>
   );
 }
