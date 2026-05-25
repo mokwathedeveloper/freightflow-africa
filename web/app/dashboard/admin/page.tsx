@@ -9,8 +9,9 @@ import {
 } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
+  Tooltip, ResponsiveContainer,
 } from 'recharts';
+import PieChartComponent from '@/components/charts/PieChart';
 import api from '@/lib/api';
 
 interface Analytics {
@@ -179,21 +180,12 @@ export default function AdminOverviewPage() {
         <div className="xl:col-span-3 bg-white rounded-xl border border-gray-200 shadow-sm p-5">
           <h3 className="text-sm font-semibold text-gray-900 mb-2">Deliveries</h3>
           <div className="relative h-[160px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={DONUT_DATA}
-                  dataKey="value"
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={50}
-                  outerRadius={72}
-                  strokeWidth={0}
-                >
-                  {DONUT_DATA.map((d, i) => <Cell key={i} fill={d.color} />)}
-                </Pie>
-              </PieChart>
-            </ResponsiveContainer>
+            <PieChartComponent
+              data={DONUT_DATA}
+              height={160}
+              innerRadius={50}
+              outerRadius={72}
+            />
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="text-center">
                 <p className="text-xl font-bold text-gray-900">3,621</p>
