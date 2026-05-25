@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { TrendingUp, Package, CheckCircle, Users, Download } from 'lucide-react';
+import { TrendingUp, Package, CheckCircle, Users, Download, X, FileDown } from 'lucide-react';
 import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
@@ -93,6 +93,80 @@ function KpiCard({ label, value, trend, trendUp, icon: Icon, iconBg, iconColor, 
   );
 }
 
+// ─── Export helpers ──────────────────────────────────────────────
+function buildCSV(stats: { totalLoads: number; delivered: number; disputed: number; activeUsers: number; deliveryRate: number }, filters: { dateFrom: string; dateTo: string; userType: string; region: string }) {
+  const rows = [
+    ['FreightFlow Analytics Export'],
+    [`Date Range: ${filters.dateFrom} — ${filters.dateTo}`],
+    [`User Type: ${filters.userType}`, `Region: ${filters.region}`],
+    [],
+    ['Metric', 'Value'],
+    ['Total Loads',        stats.totalLoads],
+    ['Delivered',          stats.delivered],
+    ['Disputed',           stats.disputed],
+    ['Active Users',       stats.activeUsers],
+    ['Delivery Rate (%)',  stats.deliveryRate],
+    [],
+    ['Load Volume Trend (static demo)', 'Loads'],
+    ...LOAD_TREND_DATA.map((d) => [d.date, d.loads]),
+    [],
+    ['Region', 'Loads'],
+    ...REGION_DATA.map((d) => [d.region, d.loads]),
+  ];
+  return rows.map((r) => r.join(',')).join('\n');
+}
+
+function downloadCSV(csv: string, filename: string) {
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ─── Export modal ────────────────────────────────────────────────
+function ExportModal({ type, onConfirm, onClose }: { type: 'CSV' | 'PDF'; onConfirm: () => void; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <div className="absolute inset-0" onClick={onClose} aria-hidden />
+      <div className="relative w-full max-w-sm bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-[#1E3A8A]/10 flex items-center justify-center">
+              <FileDown size={15} className="text-[#1E3A8A]" />
+            </div>
+            <h3 className="text-sm font-semibold text-gray-900">Export Analytics</h3>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg hover:bg-gray-100">
+            <X size={16} />
+          </button>
+        </div>
+        <div className="px-5 py-4">
+          <p className="text-sm text-gray-600">
+            Download the current filtered analytics as a <strong>{type}</strong> file?
+          </p>
+          <p className="text-xs text-gray-400 mt-1.5">
+            Includes KPI summary, load volume trend, and regional breakdown.
+          </p>
+        </div>
+        <div className="px-5 py-4 bg-gray-50 border-t border-gray-100 flex gap-3">
+          <button onClick={onClose} className="flex-1 h-9 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:bg-white transition-colors">
+            Cancel
+          </button>
+          <button
+            onClick={() => { onConfirm(); onClose(); }}
+            className="flex-1 h-9 rounded-lg bg-[#1E3A8A] text-white text-sm font-semibold hover:bg-blue-900 transition-colors"
+          >
+            Download {type}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminAnalyticsPage() {
   const today = new Date().toISOString().split('T')[0];
   const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
@@ -102,6 +176,7 @@ export default function AdminAnalyticsPage() {
   const [userType, setUserType] = useState('ALL');
   const [region, setRegion]     = useState('ALL');
   const [applied, setApplied]   = useState({ dateFrom: weekAgo, dateTo: today, userType: 'ALL', region: 'ALL' });
+  const [exportModal, setExportModal] = useState<'CSV' | 'PDF' | null>(null);
 
   const { data, isLoading } = useQuery<Analytics>({
     queryKey: ['admin-analytics', applied.dateFrom, applied.dateTo, applied.userType, applied.region],
@@ -112,6 +187,16 @@ export default function AdminAnalyticsPage() {
 
   const stats = data?.data;
 
+  const handleExportCSV = useCallback(() => {
+    if (!stats) return;
+    const csv = buildCSV(stats, applied);
+    downloadCSV(csv, `freightflow-analytics-${applied.dateFrom}-${applied.dateTo}.csv`);
+  }, [stats, applied]);
+
+  const handleExportPDF = useCallback(() => {
+    window.print();
+  }, []);
+
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -121,10 +206,18 @@ export default function AdminAnalyticsPage() {
           <p className="text-sm text-gray-500 mt-0.5">Track performance, analyze trends, and gain insights across your logistics operations.</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <button className="flex items-center gap-2 h-9 px-4 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm">
+          <button
+            onClick={() => setExportModal('CSV')}
+            disabled={!stats}
+            className="flex items-center gap-2 h-9 px-4 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors shadow-sm"
+          >
             <Download size={14} /> Export CSV
           </button>
-          <button className="flex items-center gap-2 h-9 px-4 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm">
+          <button
+            onClick={() => setExportModal('PDF')}
+            disabled={!stats}
+            className="flex items-center gap-2 h-9 px-4 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors shadow-sm"
+          >
             <Download size={14} /> Export PDF
           </button>
         </div>
@@ -302,6 +395,15 @@ export default function AdminAnalyticsPage() {
           </ResponsiveContainer>
         </div>
       </div>
+
+      {/* Export confirmation modal */}
+      {exportModal && (
+        <ExportModal
+          type={exportModal}
+          onConfirm={exportModal === 'CSV' ? handleExportCSV : handleExportPDF}
+          onClose={() => setExportModal(null)}
+        />
+      )}
     </div>
   );
 }
