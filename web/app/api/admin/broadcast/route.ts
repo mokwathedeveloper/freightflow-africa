@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireRole } from '@/lib/auth';
+import { logAudit } from '@/lib/audit';
 import { sms } from '@/lib/services/at';
 
 export async function POST(req: NextRequest) {
@@ -24,6 +25,15 @@ export async function POST(req: NextRequest) {
     if (phones.length > 0) {
       await sms.send({ to: phones, message });
     }
+
+    logAudit({
+      userId: auth.user.userId,
+      tenantId: auth.user.tenantId,
+      action: 'BROADCAST_SENT',
+      resource: 'Broadcast',
+      metadata: { role: role ?? 'ALL', recipientCount: users.length, messageLength: message.trim().length },
+      ipAddress: req.headers.get('x-forwarded-for') ?? undefined,
+    });
 
     return NextResponse.json({ success: true, message: `Broadcast sent to ${users.length} users` });
   } catch (err) {
