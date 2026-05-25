@@ -131,7 +131,7 @@ export default function ShipperPage() {
         {/* Load Volume Chart */}
         <div className="xl:col-span-2 bg-white rounded-lg border border-gray-200 shadow-sm p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-gray-900">Load Volume (Last 6 months)</h3>
+            <h3 className="text-sm font-semibold text-gray-900">Loads Posted (Last 6 months)</h3>
           </div>
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: -20 }}>
