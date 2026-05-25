@@ -14,6 +14,7 @@ import type { Load } from '@/types';
 import DataTable, { Column } from '@/components/Table/DataTable';
 import FilterDropdown, { FilterOption } from '@/components/Filters/FilterDropdown';
 import Modal from '@/components/Modal/Modal';
+import ConfirmModal from '@/components/modals/ConfirmModal';
 
 interface LoadsResponse {
   data: { loads: Load[]; total: number };
@@ -210,7 +211,7 @@ function LoadDetailModal({ load, onClose }: { load: Load; onClose: () => void })
       )}
 
       {/* Cancel action */}
-      {canCancel && !confirmCancel && (
+      {canCancel && (
         <button
           onClick={() => setConfirmCancel(true)}
           className="w-full h-9 rounded-lg border border-red-200 bg-red-50 text-sm font-medium text-red-700 hover:bg-red-100 transition-colors flex items-center justify-center gap-2"
@@ -219,29 +220,17 @@ function LoadDetailModal({ load, onClose }: { load: Load; onClose: () => void })
         </button>
       )}
 
-      {confirmCancel && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4 space-y-3">
-          <p className="text-sm font-semibold text-red-800">Confirm cancellation</p>
-          <p className="text-xs text-red-700">
-            Cancelling <strong>{load.shortId}</strong> is irreversible. The shipper and transporter will be notified.
-          </p>
-          <div className="flex gap-2">
-            <button
-              onClick={() => cancelMut.mutate()}
-              disabled={cancelMut.isPending}
-              className="flex-1 h-8 rounded-lg bg-red-600 text-white text-xs font-semibold hover:bg-red-700 disabled:opacity-60 transition-colors"
-            >
-              {cancelMut.isPending ? 'Cancelling…' : 'Yes, Cancel'}
-            </button>
-            <button
-              onClick={() => setConfirmCancel(false)}
-              className="flex-1 h-8 rounded-lg border border-gray-200 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
-            >
-              Keep Load
-            </button>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        isOpen={confirmCancel}
+        onClose={() => setConfirmCancel(false)}
+        title="Cancel Load"
+        description={`Cancelling ${load.shortId} is irreversible. The shipper and transporter will be notified.`}
+        confirmLabel="Yes, Cancel"
+        cancelLabel="Keep Load"
+        isDangerous
+        isPending={cancelMut.isPending}
+        onConfirm={() => cancelMut.mutate()}
+      />
 
       <button
         onClick={onClose}

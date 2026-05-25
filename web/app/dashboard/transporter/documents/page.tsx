@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { useToastStore } from '@/store/toast.store';
 import api from '@/lib/api';
 import Modal from '@/components/Modal/Modal';
+import ConfirmModal from '@/components/modals/ConfirmModal';
 import FilterDropdown, { FilterOption } from '@/components/Filters/FilterDropdown';
 import type { Document, DocStatus, DocType } from '@/types';
 
@@ -508,38 +509,16 @@ export default function TransporterDocumentsPage() {
       </Modal>
 
       {/* Delete confirmation modal */}
-      <Modal
+      <ConfirmModal
         isOpen={!!deleteDoc}
         onClose={() => setDeleteDoc(null)}
         title="Delete Document"
-        size="sm"
-      >
-        {deleteDoc && (
-          <div className="space-y-4">
-            <p className="text-sm text-gray-600">
-              Are you sure you want to delete{' '}
-              <span className="font-semibold text-gray-900">{deleteDoc.fileName}</span>?
-              This action cannot be undone.
-            </p>
-            <div className="flex gap-2">
-              <button
-                onClick={() => deleteMutation.mutate(deleteDoc.id)}
-                disabled={deleteMutation.isPending}
-                className="flex-1 h-9 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-60 transition-colors"
-              >
-                {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
-              </button>
-              <button
-                onClick={() => setDeleteDoc(null)}
-                disabled={deleteMutation.isPending}
-                className="flex-1 h-9 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
-      </Modal>
+        description={deleteDoc ? `Are you sure you want to delete "${deleteDoc.fileName}"? This action cannot be undone.` : undefined}
+        confirmLabel="Delete"
+        isDangerous
+        isPending={deleteMutation.isPending}
+        onConfirm={() => deleteDoc && deleteMutation.mutate(deleteDoc.id)}
+      />
     </div>
   );
 }
