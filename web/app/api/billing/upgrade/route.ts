@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAuth } from '@/lib/auth';
+import { logAudit } from '@/lib/audit';
 
 const PLAN_TO_TIER: Record<string, 'FREE' | 'STARTER' | 'PROFESSIONAL' | 'ENTERPRISE'> = {
   starter:    'STARTER',
@@ -28,6 +29,15 @@ export async function POST(req: NextRequest) {
       where:  { tenantId: auth.user.tenantId },
       create: { tenantId: auth.user.tenantId, tier, endDate },
       update: { tier, endDate },
+    });
+
+    logAudit({
+      userId: auth.user.userId,
+      tenantId: auth.user.tenantId,
+      action: 'SUBSCRIPTION_CHANGED',
+      resource: 'Subscription',
+      metadata: { planId, tier },
+      ipAddress: req.headers.get('x-forwarded-for') ?? undefined,
     });
 
     return NextResponse.json({ success: true, message: `Plan updated to ${planId}` });

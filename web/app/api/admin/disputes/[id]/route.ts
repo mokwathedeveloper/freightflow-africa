@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireRole } from '@/lib/auth';
+import { logAudit } from '@/lib/audit';
 import { Prisma } from '@prisma/client';
 
 const ALLOWED_FINAL_STATUSES = new Set(['DELIVERED', 'CANCELLED', 'POSTED']);
@@ -37,6 +38,16 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       if (finalStatus) {
         await tx.load.update({ where: { id: existing.loadId }, data: { status: finalStatus } });
       }
+    });
+
+    logAudit({
+      userId: auth.user.userId,
+      tenantId: auth.user.tenantId,
+      action: 'DISPUTE_RESOLVED',
+      resource: 'Dispute',
+      resourceId: id,
+      metadata: { resolution, finalStatus },
+      ipAddress: req.headers.get('x-forwarded-for') ?? undefined,
     });
 
     return NextResponse.json({ success: true, message: 'Dispute resolved' });

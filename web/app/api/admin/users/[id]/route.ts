@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireRole } from '@/lib/auth';
+import { logAudit } from '@/lib/audit';
 import type { UserRole } from '@/types';
 
 const VALID_ROLES: UserRole[] = ['SHIPPER', 'TRANSPORTER', 'ADMIN'];
@@ -35,6 +36,17 @@ export async function PATCH(
     if (!updated) {
       return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
     }
+
+    const action = role ? 'USER_ROLE_CHANGED' : isActive ? 'USER_ACTIVATED' : 'USER_DEACTIVATED';
+    logAudit({
+      userId: auth.user.userId,
+      tenantId: auth.user.tenantId,
+      action,
+      resource: 'User',
+      resourceId: id,
+      metadata: role ? { newRole: role } : { isActive },
+      ipAddress: req.headers.get('x-forwarded-for') ?? undefined,
+    });
 
     return NextResponse.json({ success: true, data: updated });
   } catch {
