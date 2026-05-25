@@ -39,7 +39,7 @@ async function main() {
   console.log(`Tenant: ${tenant.name} (${tenant.id})\n`);
 
   for (const u of DEMO_USERS) {
-    const passwordHash = bcrypt.hashSync(u.password, 12);
+    const passwordHash = bcrypt.hashSync(u.password, 10);
 
     const user = await prisma.user.upsert({
       where: { phone: u.phone },

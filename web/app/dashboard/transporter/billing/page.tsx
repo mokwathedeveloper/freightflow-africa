@@ -9,6 +9,7 @@ import {
 import { formatDate, cn } from '@/lib/utils';
 import api from '@/lib/api';
 import { useToastStore } from '@/store/toast.store';
+import DataTable, { Column } from '@/components/Table/DataTable';
 
 interface Plan {
   id: string;
@@ -283,48 +284,62 @@ export default function BillingPage() {
             <p className="text-xs text-gray-400 mt-1">Your invoices will appear here after your first charge.</p>
           </div>
         ) : (
-          <table className="w-full data-table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Description</th>
-                <th>Amount</th>
-                <th>Status</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {history.map((record) => (
-                <tr key={record.id}>
-                  <td className="text-gray-500 text-xs">{formatDate(record.date)}</td>
-                  <td className="text-gray-700">{record.description}</td>
-                  <td className="font-medium text-gray-900">
-                    {record.currency} {record.amount.toLocaleString()}
-                  </td>
-                  <td>
-                    <span className={cn(
-                      'text-xs font-medium px-2 py-0.5 rounded-full border',
-                      statusBadge(record.status)
-                    )}>
-                      {record.status}
-                    </span>
-                  </td>
-                  <td>
-                    {record.invoiceUrl && (
-                      <a
-                        href={record.invoiceUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-xs text-[#1E3A8A] hover:underline"
-                      >
-                        <Download size={12} /> Invoice
-                      </a>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <DataTable<BillingRecord>
+            columns={[
+              {
+                key: 'date',
+                header: 'Date',
+                sortable: true,
+                render: (_, r) => (
+                  <span className="text-xs text-gray-500">{formatDate(r.date)}</span>
+                ),
+              },
+              {
+                key: 'description',
+                header: 'Description',
+                render: (_, r) => (
+                  <span className="text-sm text-gray-700">{r.description}</span>
+                ),
+              },
+              {
+                key: 'amount',
+                header: 'Amount',
+                sortable: true,
+                render: (_, r) => (
+                  <span className="text-sm font-medium text-gray-900">
+                    {r.currency} {r.amount.toLocaleString()}
+                  </span>
+                ),
+              },
+              {
+                key: 'status',
+                header: 'Status',
+                sortable: true,
+                render: (_, r) => (
+                  <span className={cn('text-xs font-medium px-2 py-0.5 rounded-full border', statusBadge(r.status))}>
+                    {r.status}
+                  </span>
+                ),
+              },
+              {
+                key: 'invoiceUrl' as keyof BillingRecord,
+                header: '',
+                render: (_, r) =>
+                  r.invoiceUrl ? (
+                    <a
+                      href={r.invoiceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-xs text-[#1E3A8A] hover:underline"
+                    >
+                      <Download size={12} /> Invoice
+                    </a>
+                  ) : null,
+              },
+            ] as Column<BillingRecord>[]}
+            data={history}
+            keyField="id"
+          />
         )}
       </div>
     </div>

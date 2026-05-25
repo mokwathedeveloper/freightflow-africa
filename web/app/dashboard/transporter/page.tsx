@@ -16,6 +16,7 @@ import { useAuthStore } from '@/store/auth.store';
 import api from '@/lib/api';
 import { formatDate } from '@/lib/utils';
 import type { Load } from '@/types';
+import DataTable, { Column } from '@/components/Table/DataTable';
 
 interface MyLoadsResponse {
   data: { loads: Load[]; total: number };
@@ -234,34 +235,49 @@ export default function TransporterPage() {
             </Link>
           </div>
         ) : (
-          <table className="w-full data-table">
-            <thead>
-              <tr>
-                <th>Load ID</th>
-                <th>Route</th>
-                <th>Cargo</th>
-                <th>Due Date</th>
-                <th>Status</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {recent.map((load) => (
-                <tr
-                  key={load.id}
-                  className="hover:bg-gray-50 cursor-pointer"
-                  onClick={() => window.location.href = `/dashboard/transporter/track/${load.id}`}
-                >
-                  <td className="font-mono text-xs text-gray-500">{load.shortId}</td>
-                  <td className="font-medium">{load.origin} → {load.destination}</td>
-                  <td className="text-gray-500">{load.cargoType}</td>
-                  <td className="text-gray-500">{formatDate(load.deliveryDate)}</td>
-                  <td><LoadStatusBadge status={load.status} /></td>
-                  <td><ChevronRight size={14} className="text-gray-400" /></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <DataTable<Load>
+            columns={[
+              {
+                key: 'shortId',
+                header: 'Load ID',
+                render: (_, l) => (
+                  <span className="font-mono text-xs text-gray-500">{l.shortId}</span>
+                ),
+              },
+              {
+                key: 'origin',
+                header: 'Route',
+                render: (_, l) => (
+                  <span className="text-sm font-medium text-gray-800">{l.origin} → {l.destination}</span>
+                ),
+              },
+              {
+                key: 'cargoType',
+                header: 'Cargo',
+                render: (_, l) => <span className="text-sm text-gray-500">{l.cargoType}</span>,
+              },
+              {
+                key: 'deliveryDate',
+                header: 'Due Date',
+                render: (_, l) => (
+                  <span className="text-sm text-gray-500">{formatDate(l.deliveryDate)}</span>
+                ),
+              },
+              {
+                key: 'status',
+                header: 'Status',
+                render: (_, l) => <LoadStatusBadge status={l.status} />,
+              },
+              {
+                key: 'id',
+                header: '',
+                render: () => <ChevronRight size={14} className="text-gray-400" />,
+              },
+            ] as Column<Load>[]}
+            data={recent}
+            keyField="id"
+            onRowClick={(l) => { window.location.href = `/dashboard/transporter/track/${l.id}`; }}
+          />
         )}
       </div>
     </div>

@@ -9,6 +9,7 @@ import {
 import { cn } from '@/lib/utils';
 import api from '@/lib/api';
 import { useToastStore } from '@/store/toast.store';
+import FilterDropdown, { FilterOption } from '@/components/Filters/FilterDropdown';
 
 type Severity = 'Critical' | 'High' | 'Medium' | 'Low' | 'Info';
 type ReadState = 'read' | 'unread';
@@ -113,7 +114,7 @@ export default function AdminAlertsPage() {
   const addToast = useToastStore((s) => s.addToast);
   const [tab, setTab]                 = useState<Tab>('Alerts Centre');
   const [readFilter, setReadFilter]   = useState<'All' | 'Unread' | 'Read'>('All');
-  const [severity, setSeverity]       = useState('All Severity');
+  const [severity, setSeverity]       = useState('ALL');
   const [search, setSearch]           = useState('');
   const [selected, setSelected]       = useState<SystemAlert | null>(ALERTS[0]);
   const [alerts, setAlerts]           = useState(ALERTS);
@@ -151,9 +152,18 @@ export default function AdminAlertsPage() {
     onError: () => addToast('error', 'Failed to escalate alert'),
   });
 
+  const SEVERITY_OPTIONS: FilterOption[] = [
+    { label: 'All Severity', value: 'ALL' },
+    { label: 'Critical',     value: 'Critical' },
+    { label: 'High',         value: 'High' },
+    { label: 'Medium',       value: 'Medium' },
+    { label: 'Low',          value: 'Low' },
+    { label: 'Info',         value: 'Info' },
+  ];
+
   const filtered = alerts.filter((a) => {
     const matchRead     = readFilter === 'All' || (readFilter === 'Unread' ? !a.read : a.read);
-    const matchSeverity = severity === 'All Severity' || a.severity === severity;
+    const matchSeverity = severity === 'ALL' || a.severity === severity;
     const matchSearch   = !search || a.title.toLowerCase().includes(search.toLowerCase());
     return matchRead && matchSeverity && matchSearch;
   });
@@ -214,15 +224,12 @@ export default function AdminAlertsPage() {
                   {f}
                 </button>
               ))}
-              <select
-                value={severity}
-                onChange={(e) => setSeverity(e.target.value)}
-                className="ff-input h-8 text-xs w-auto pr-7"
-              >
-                {['All Severity', 'Critical', 'High', 'Medium', 'Low', 'Info'].map((s) => (
-                  <option key={s}>{s}</option>
-                ))}
-              </select>
+              <FilterDropdown
+                label="All Severity"
+                options={SEVERITY_OPTIONS}
+                selected={severity}
+                onChange={setSeverity}
+              />
               <div className="relative flex-1 max-w-xs">
                 <input
                   value={search}

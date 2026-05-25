@@ -4,6 +4,7 @@ import { Bell, Search } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth.store';
 import { useState } from 'react';
+import NotificationsDrawer from '@/components/Notifications/NotificationsDrawer';
 
 interface Props {
   title: string;
@@ -14,7 +15,8 @@ interface Props {
 export function DashboardHeader({ title, notificationCount = 0, onMenuClick }: Props) {
   const router = useRouter();
   const { user } = useAuthStore();
-  const [search, setSearch] = useState('');
+  const [search,    setSearch]    = useState('');
+  const [notifOpen, setNotifOpen] = useState(false);
   const ROLE_PATH: Record<string, string> = { SHIPPER: 'shipper', TRANSPORTER: 'transporter', ADMIN: 'admin' };
   const safeRole = user?.role ? (ROLE_PATH[user.role] ?? 'shipper') : 'shipper';
 
@@ -52,9 +54,9 @@ export function DashboardHeader({ title, notificationCount = 0, onMenuClick }: P
 
         {/* Notification bell */}
         <button
-          onClick={() => router.push(`/dashboard/${safeRole}/notifications`)}
+          onClick={() => setNotifOpen(true)}
           className="relative p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
-          aria-label="Notifications"
+          aria-label="Open notifications"
         >
           <Bell size={18} />
           {notificationCount > 0 && (
@@ -77,6 +79,8 @@ export function DashboardHeader({ title, notificationCount = 0, onMenuClick }: P
           </span>
         </button>
       </div>
+
+      <NotificationsDrawer isOpen={notifOpen} onClose={() => setNotifOpen(false)} />
     </header>
   );
 }

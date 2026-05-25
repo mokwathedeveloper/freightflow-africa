@@ -9,6 +9,7 @@ import { formatDate } from '@/lib/utils';
 import api from '@/lib/api';
 import { useToastStore } from '@/store/toast.store';
 import type { Load, LoadStatus } from '@/types';
+import DataTable, { Column } from '@/components/Table/DataTable';
 
 interface MyLoadsResponse {
   data: { loads: Load[]; total: number };
@@ -172,48 +173,66 @@ export default function ShipmentsPage() {
             <p className="text-xs text-gray-400 mt-1">Try changing the filter or search term.</p>
           </div>
         ) : (
-          <table className="w-full data-table">
-            <thead>
-              <tr>
-                <th>Load ID</th>
-                <th>Route</th>
-                <th>Cargo</th>
-                <th>Weight</th>
-                <th>Due Date</th>
-                <th>Status</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {loads.map((load) => (
-                <tr
-                  key={load.id}
-                  className="cursor-pointer"
-                  onClick={() => window.location.href = `/dashboard/shipper/track/${load.id}`}
-                >
-                  <td className="font-mono text-xs text-gray-500">{load.shortId}</td>
-                  <td>
-                    <span className="font-medium text-gray-900">{load.origin}</span>
-                    <span className="text-gray-400 mx-1">→</span>
-                    <span className="font-medium text-gray-900">{load.destination}</span>
-                  </td>
-                  <td className="text-gray-600">{load.cargoType}</td>
-                  <td className="text-gray-600">{load.weight}t</td>
-                  <td className="text-gray-600">{formatDate(load.deliveryDate)}</td>
-                  <td><LoadStatusBadge status={load.status} /></td>
-                  <td>
-                    <Link
-                      href={`/dashboard/shipper/track/${load.id}`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="flex items-center gap-1 text-xs text-[#1E3A8A] hover:underline"
-                    >
-                      Track <ChevronRight size={12} />
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <DataTable<Load>
+            columns={[
+              {
+                key: 'shortId',
+                header: 'Load ID',
+                render: (_, l) => (
+                  <span className="font-mono text-xs text-gray-500">{l.shortId}</span>
+                ),
+              },
+              {
+                key: 'origin',
+                header: 'Route',
+                render: (_, l) => (
+                  <span className="text-sm font-medium text-gray-900">
+                    {l.origin} <span className="text-gray-400">→</span> {l.destination}
+                  </span>
+                ),
+              },
+              {
+                key: 'cargoType',
+                header: 'Cargo',
+                render: (_, l) => <span className="text-sm text-gray-600">{l.cargoType}</span>,
+              },
+              {
+                key: 'weight',
+                header: 'Weight',
+                render: (_, l) => <span className="text-sm text-gray-600">{l.weight}t</span>,
+              },
+              {
+                key: 'deliveryDate',
+                header: 'Due Date',
+                sortable: true,
+                render: (_, l) => (
+                  <span className="text-sm text-gray-600">{formatDate(l.deliveryDate)}</span>
+                ),
+              },
+              {
+                key: 'status',
+                header: 'Status',
+                sortable: true,
+                render: (_, l) => <LoadStatusBadge status={l.status} />,
+              },
+              {
+                key: 'id',
+                header: '',
+                render: (_, l) => (
+                  <Link
+                    href={`/dashboard/shipper/track/${l.id}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex items-center gap-1 text-xs text-[#1E3A8A] hover:underline"
+                  >
+                    Track <ChevronRight size={12} />
+                  </Link>
+                ),
+              },
+            ] as Column<Load>[]}
+            data={loads}
+            keyField="id"
+            onRowClick={(l) => { window.location.href = `/dashboard/shipper/track/${l.id}`; }}
+          />
         )}
       </div>
     </div>

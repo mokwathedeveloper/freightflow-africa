@@ -5,6 +5,7 @@ import { Check, CreditCard, Plus, Loader2, ArrowUpRight } from 'lucide-react';
 import { formatDate, cn } from '@/lib/utils';
 import api from '@/lib/api';
 import { useToastStore } from '@/store/toast.store';
+import DataTable, { Column } from '@/components/Table/DataTable';
 
 interface BillingRecord {
   id: string;
@@ -197,56 +198,64 @@ export default function AdminSubscriptionsPage() {
             <h3 className="text-sm font-semibold text-gray-900">Billing &amp; Invoices</h3>
           </div>
 
-          {isLoading ? (
-            <div className="divide-y divide-gray-100">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="px-5 py-4 flex items-center gap-4 animate-pulse">
-                  <div className="h-3 bg-gray-100 rounded w-32" />
-                  <div className="h-3 bg-gray-100 rounded flex-1" />
-                  <div className="h-5 bg-gray-100 rounded w-16" />
-                </div>
-              ))}
-            </div>
-          ) : history.length === 0 ? (
-            <div className="py-12 text-center">
-              <CreditCard className="mx-auto text-gray-300 mb-3" size={28} />
-              <p className="text-sm text-gray-500">No billing records yet</p>
-            </div>
-          ) : (
-            <table className="w-full data-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Description</th>
-                  <th>Amount</th>
-                  <th>Status</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {history.map((inv) => (
-                  <tr key={inv.id}>
-                    <td className="text-xs text-gray-600">{formatDate(inv.date)}</td>
-                    <td className="text-xs text-gray-600">{inv.description}</td>
-                    <td className="text-xs font-semibold text-gray-900">{inv.currency} {inv.amount.toLocaleString()}</td>
-                    <td>
-                      <span className={cn('text-xs font-medium px-2 py-0.5 rounded-full', statusBadge(inv.status))}>
-                        {inv.status}
-                      </span>
-                    </td>
-                    <td>
-                      {inv.invoiceUrl && (
-                        <a href={inv.invoiceUrl} target="_blank" rel="noopener noreferrer"
-                          className="text-xs text-[#1E3A8A] hover:underline">
-                          View
-                        </a>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+          <DataTable<BillingRecord>
+            columns={[
+              {
+                key: 'date',
+                header: 'Date',
+                sortable: true,
+                render: (_, r) => (
+                  <span className="text-xs text-gray-600">{formatDate(r.date)}</span>
+                ),
+              },
+              {
+                key: 'description',
+                header: 'Description',
+                render: (_, r) => (
+                  <span className="text-xs text-gray-600">{r.description}</span>
+                ),
+              },
+              {
+                key: 'amount',
+                header: 'Amount',
+                sortable: true,
+                render: (_, r) => (
+                  <span className="text-xs font-semibold text-gray-900">
+                    {r.currency} {r.amount.toLocaleString()}
+                  </span>
+                ),
+              },
+              {
+                key: 'status',
+                header: 'Status',
+                sortable: true,
+                render: (_, r) => (
+                  <span className={cn('text-xs font-medium px-2 py-0.5 rounded-full', statusBadge(r.status))}>
+                    {r.status}
+                  </span>
+                ),
+              },
+              {
+                key: 'invoiceUrl' as keyof BillingRecord,
+                header: 'Invoice',
+                render: (_, r) =>
+                  r.invoiceUrl ? (
+                    <a
+                      href={r.invoiceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-[#1E3A8A] hover:underline"
+                    >
+                      View
+                    </a>
+                  ) : null,
+              },
+            ] as Column<BillingRecord>[]}
+            data={history}
+            keyField="id"
+            loading={isLoading}
+            emptyMessage="No billing records yet."
+          />
         </div>
 
         {/* Payment Methods */}

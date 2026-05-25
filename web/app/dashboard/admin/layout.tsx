@@ -10,6 +10,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useAuthStore } from '@/store/auth.store';
 import { cn } from '@/lib/utils';
+import NotificationsDrawer from '@/components/Notifications/NotificationsDrawer';
 
 const NAV = [
   { href: '/dashboard/admin',               label: 'Dashboard',            icon: LayoutDashboard },
@@ -99,7 +100,8 @@ function AdminSidebar({ onClose }: { onClose?: () => void }) {
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth('ADMIN');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen,   setSidebarOpen]   = useState(false);
+  const [notifOpen,     setNotifOpen]     = useState(false);
 
   if (!isAuthenticated) return null;
 
@@ -139,7 +141,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
           <div className="flex items-center gap-3 ml-auto">
             {/* Notifications bell */}
-            <button className="relative w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors">
+            <button
+              onClick={() => setNotifOpen(true)}
+              className="relative w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors"
+              aria-label="Open notifications"
+            >
               <Bell size={16} />
               <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-red-500" />
             </button>
@@ -159,6 +165,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         <main className="flex-1 overflow-y-auto p-6">{children}</main>
       </div>
+
+      <NotificationsDrawer isOpen={notifOpen} onClose={() => setNotifOpen(false)} />
     </div>
   );
 }
