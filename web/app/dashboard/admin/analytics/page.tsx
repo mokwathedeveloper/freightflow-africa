@@ -306,7 +306,10 @@ export default function AdminAnalyticsPage() {
         <div className="xl:col-span-7 bg-white rounded-xl border border-gray-200 shadow-sm p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-semibold text-gray-900">Load Volume Trend</h3>
-            <span className="text-xs text-gray-400">Daily</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">Sample Data</span>
+              <span className="text-xs text-gray-400">Daily</span>
+            </div>
           </div>
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={LOAD_TREND_DATA} margin={{ top: 4, right: 8, bottom: 0, left: -20 }}>
@@ -321,7 +324,10 @@ export default function AdminAnalyticsPage() {
 
         {/* Loads by Region */}
         <div className="xl:col-span-5 bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-          <h3 className="text-sm font-semibold text-gray-900 mb-4">Loads by Region</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-gray-900">Loads by Region</h3>
+            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">Sample Data</span>
+          </div>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={REGION_DATA} margin={{ top: 4, right: 8, bottom: 0, left: -20 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
@@ -339,7 +345,10 @@ export default function AdminAnalyticsPage() {
 
         {/* Cargo Type Distribution */}
         <div className="xl:col-span-5 bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-          <h3 className="text-sm font-semibold text-gray-900 mb-3">Cargo Type Distribution</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-gray-900">Cargo Type Distribution</h3>
+            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">Sample Data</span>
+          </div>
           <div className="flex items-center gap-4">
             <div className="relative h-[160px] w-[160px] shrink-0">
               <ResponsiveContainer width="100%" height="100%">
@@ -382,7 +391,10 @@ export default function AdminAnalyticsPage() {
         <div className="xl:col-span-7 bg-white rounded-xl border border-gray-200 shadow-sm p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-semibold text-gray-900">User Activity (Logins)</h3>
-            <span className="text-xs text-gray-400">Daily</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">Sample Data</span>
+              <span className="text-xs text-gray-400">Daily</span>
+            </div>
           </div>
           <ResponsiveContainer width="100%" height={190}>
             <LineChart data={USER_ACTIVITY_DATA} margin={{ top: 4, right: 8, bottom: 0, left: -20 }}>
