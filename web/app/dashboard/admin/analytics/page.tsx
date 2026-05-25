@@ -4,9 +4,11 @@ import { useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { TrendingUp, Package, CheckCircle, Users, Download, X, FileDown } from 'lucide-react';
 import {
-  LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+  LineChart, Line,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
+import BarChartComponent from '@/components/charts/BarChart';
+import PieChartComponent from '@/components/charts/PieChart';
 import api from '@/lib/api';
 import FilterDropdown, { FilterOption } from '@/components/Filters/FilterDropdown';
 
@@ -328,15 +330,12 @@ export default function AdminAnalyticsPage() {
             <h3 className="text-sm font-semibold text-gray-900">Loads by Region</h3>
             <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">Sample Data</span>
           </div>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={REGION_DATA} margin={{ top: 4, right: 8, bottom: 0, left: -20 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
-              <XAxis dataKey="region" tick={{ fontSize: 9, fill: '#9CA3AF' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 10, fill: '#9CA3AF' }} axisLine={false} tickLine={false} allowDecimals={false} />
-              <Tooltip contentStyle={{ border: '1px solid #E5E7EB', borderRadius: 8, fontSize: 12 }} />
-              <Bar dataKey="loads" name="Loads" fill="#16A34A" radius={[3, 3, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <BarChartComponent
+            data={REGION_DATA}
+            xKey="region"
+            bars={[{ dataKey: 'loads', label: 'Loads', color: '#16A34A' }]}
+            height={200}
+          />
         </div>
       </div>
 
@@ -351,21 +350,12 @@ export default function AdminAnalyticsPage() {
           </div>
           <div className="flex items-center gap-4">
             <div className="relative h-[160px] w-[160px] shrink-0">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={CARGO_PIE_DATA}
-                    dataKey="value"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={45}
-                    outerRadius={72}
-                    strokeWidth={0}
-                  >
-                    {CARGO_PIE_DATA.map((d, i) => <Cell key={i} fill={d.color} />)}
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
+              <PieChartComponent
+                data={CARGO_PIE_DATA}
+                height={160}
+                innerRadius={45}
+                outerRadius={72}
+              />
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div className="text-center">
                   <p className="text-base font-bold text-gray-900">3,621</p>

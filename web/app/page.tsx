@@ -2,6 +2,7 @@ import { Truck, Package, CheckCircle, BarChart2, TrendingUp, Phone, X } from 'lu
 import PublicNavbar from '@/components/layout/PublicNavbar';
 import PublicFooter from '@/components/layout/PublicFooter';
 import HeroSection from '@/components/public/HeroSection';
+import HeroImage from '@/components/public/HeroImage';
 import StatsBar from '@/components/public/StatsBar';
 import FeatureCard from '@/components/public/FeatureCard';
 import TrustedBrands from '@/components/public/TrustedBrands';
@@ -63,6 +64,7 @@ export default function Home() {
         headline="Move Cargo."
         greenSpan="Track Everything."
         subheadline="Connect shippers with transporters across Kenya. Post loads, track cargo in real time, and update delivery status from any phone — even without internet via USSD."
+        rightContent={<HeroImage src="/hero-truck.png" alt="Modern freight truck in motion" />}
       />
 
       <StatsBar stats={TRUST_STATS} />
