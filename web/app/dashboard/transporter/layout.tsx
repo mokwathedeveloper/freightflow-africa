@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { LayoutDashboard, Search, Briefcase, Bell, Settings, MapPin, CreditCard, FileText } from 'lucide-react';
+import { LayoutDashboard, Search, Briefcase, Bell, Settings, MapPin, CreditCard, FileText, BarChart2 } from 'lucide-react';
 import { DashboardSidebar } from '@/components/layout/DashboardSidebar';
 import { DashboardHeader } from '@/components/layout/DashboardHeader';
 import { useAuth } from '@/hooks/useAuth';
@@ -13,6 +13,7 @@ const NAV = [
   { href: '/dashboard/transporter/jobs',          label: 'My Jobs',       icon: Briefcase },
   { href: '/dashboard/transporter/track',         label: 'Track Route',   icon: MapPin },
   { href: '/dashboard/transporter/notifications', label: 'Notifications', icon: Bell },
+  { href: '/dashboard/transporter/analytics',     label: 'Analytics',     icon: BarChart2 },
   { href: '/dashboard/transporter/documents',     label: 'Cross-Border',  icon: FileText },
   { href: '/dashboard/transporter/billing',       label: 'Billing',       icon: CreditCard },
   { href: '/dashboard/transporter/settings',      label: 'Settings',      icon: Settings },
