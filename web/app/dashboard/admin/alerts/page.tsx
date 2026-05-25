@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import {
   AlertTriangle, Info, Bell, Send, Loader2, X,
   Mail, MessageSquare, ChevronRight,
@@ -174,8 +174,35 @@ export default function AdminAlertsPage() {
 
   const unreadCount = alerts.filter((a) => !a.read).length;
 
+  const { data: atStatus } = useQuery<{ data: { atKeySet: boolean; sandboxMode: boolean } }>({
+    queryKey: ['at-status'],
+    queryFn: () => api.get('/admin/at-status').then((r) => r.data),
+    staleTime: 300_000,
+  });
+
   return (
     <div className="space-y-5">
+      {/* AT API sandbox banner */}
+      {atStatus && !atStatus.data.atKeySet && (
+        <div className="flex items-center gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800">
+          <AlertTriangle size={16} className="text-amber-500 shrink-0" />
+          <span>
+            <strong>SMS notifications are disabled</strong> — Africa&apos;s Talking API key is not configured.
+            Add <code className="font-mono bg-amber-100 px-1 rounded">AT_API_KEY</code> and{' '}
+            <code className="font-mono bg-amber-100 px-1 rounded">AT_USERNAME=sandbox</code> to{' '}
+            <code className="font-mono bg-amber-100 px-1 rounded">.env.local</code> to enable sandbox mode.
+          </span>
+        </div>
+      )}
+      {atStatus?.data.atKeySet && atStatus.data.sandboxMode && (
+        <div className="flex items-center gap-3 px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-800">
+          <Info size={16} className="text-blue-500 shrink-0" />
+          <span>
+            <strong>AT Sandbox mode active</strong> — SMS and USSD calls go to the Africa&apos;s Talking sandbox.
+            Switch <code className="font-mono bg-blue-100 px-1 rounded">AT_USERNAME</code> to your live username for production.
+          </span>
+        </div>
+      )}
       {/* Header */}
       <div>
         <h2 className="text-xl font-bold text-gray-900">System Alerts / Notifications</h2>
