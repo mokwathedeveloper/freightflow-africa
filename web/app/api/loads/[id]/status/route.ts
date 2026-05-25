@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireRole } from '@/lib/auth';
+import { logAudit } from '@/lib/audit';
 import { sendSMS } from '@/lib/services/sms.service';
 import { updateStatusSchema } from '@/lib/validators';
 import { ZodError } from 'zod';
@@ -38,6 +39,16 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     await prisma.loadStatusLog.create({
       data: { loadId: id, status, changedBy: auth.user.userId, channel: 'WEB', note },
+    });
+
+    logAudit({
+      userId: auth.user.userId,
+      tenantId: auth.user.tenantId,
+      action: 'LOAD_STATUS_CHANGED',
+      resource: 'Load',
+      resourceId: id,
+      metadata: { status, shortId: load.shortId },
+      ipAddress: req.headers.get('x-forwarded-for') ?? undefined,
     });
 
     const eventMap: Record<string, 'CARGO_PICKUP' | 'IN_TRANSIT_UPDATE'> = {
