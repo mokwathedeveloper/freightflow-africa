@@ -10,8 +10,8 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  TooltipProps,
 } from 'recharts';
+import type { TooltipProps } from 'recharts';
 
 export interface BarChartBarConfig {
   dataKey: string;
@@ -35,8 +35,8 @@ function CustomTooltip({ active, payload, label }: TooltipProps<number, string>)
     <div className="bg-white border border-gray-200 rounded-lg shadow-md px-3 py-2 text-xs">
       <p className="font-semibold text-gray-800 mb-1">{label}</p>
       {payload.map((p) => (
-        <p key={p.dataKey} style={{ color: p.color }} className="font-medium">
-          {p.name}: <span className="text-gray-700">{p.value?.toLocaleString()}</span>
+        <p key={p.dataKey as string} style={{ color: p.color }} className="font-medium">
+          {p.name}: <span className="text-gray-700">{typeof p.value === 'number' ? p.value.toLocaleString() : p.value}</span>
         </p>
       ))}
     </div>
