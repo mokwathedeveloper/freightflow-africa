@@ -90,6 +90,8 @@ model User {
   company      String?  // SHIPPER only
   rating       Float    @default(0)
   ratingCount  Int      @default(0)
+  notifPrefs   Json?                    // { smsOnAccepted, smsOnPickedUp, smsOnDelivered, smsOnDispute, emailDigest }
+  userPrefs    Json?                    // { defaultOrigin, currency, weightUnit }
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
