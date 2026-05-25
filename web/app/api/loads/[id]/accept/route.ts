@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireRole } from '@/lib/auth';
+import { logAudit } from '@/lib/audit';
 import { sendSMS } from '@/lib/services/sms.service';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
@@ -37,6 +38,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!updated) {
     return NextResponse.json({ success: false, error: 'Load not found after update' }, { status: 500 });
   }
+
+  logAudit({
+    userId: transporterId,
+    tenantId: auth.user.tenantId,
+    action: 'LOAD_STATUS_CHANGED',
+    resource: 'Load',
+    resourceId: id,
+    metadata: { status: 'ACCEPTED', shortId: updated.shortId },
+    ipAddress: req.headers.get('x-forwarded-for') ?? undefined,
+  });
 
   sendSMS(
     updated.shipper.phone,
