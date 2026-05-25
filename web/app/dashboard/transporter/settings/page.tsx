@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useState, useEffect, useRef } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   User, Lock, Bell, Sliders, Truck, Phone, Mail,
   Loader2, CheckCircle,
@@ -22,21 +22,54 @@ const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: 'preferences',   label: 'Preferences',    icon: Sliders },
 ];
 
-/* ── Profile Tab ───────────────────────────────────────────────── */
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/* ── Profile Tab ─────────────────────────────────────────────────── */
 function ProfileTab() {
-  const user = useAuthStore((s) => s.user);
-  const addToast = useToastStore((s) => s.addToast);
+  const user      = useAuthStore((s) => s.user);
+  const addToast  = useToastStore((s) => s.addToast);
+
   const [name,        setName]        = useState(user?.name        ?? '');
   const [email,       setEmail]       = useState(user?.email       ?? '');
   const [vehicleType, setVehicleType] = useState(user?.vehicleType ?? '');
   const [numberPlate, setNumberPlate] = useState(user?.numberPlate ?? '');
+  const initial = useRef({
+    name: user?.name ?? '', email: user?.email ?? '',
+    vehicleType: user?.vehicleType ?? '', numberPlate: user?.numberPlate ?? '',
+  });
+
+  const { data: profileData } = useQuery({
+    queryKey: ['my-profile'],
+    queryFn:  () => api.get('/users/me').then((r) => r.data.data),
+    staleTime: 60_000,
+  });
+
+  useEffect(() => {
+    if (!profileData) return;
+    const n  = profileData.name        ?? '';
+    const e  = profileData.email       ?? '';
+    const vt = profileData.vehicleType ?? '';
+    const np = profileData.numberPlate ?? '';
+    setName(n); setEmail(e); setVehicleType(vt); setNumberPlate(np);
+    initial.current = { name: n, email: e, vehicleType: vt, numberPlate: np };
+  }, [profileData]);
+
+  const isDirty =
+    name        !== initial.current.name        ||
+    email       !== initial.current.email       ||
+    vehicleType !== initial.current.vehicleType ||
+    numberPlate !== initial.current.numberPlate;
+
+  const emailError = email && !EMAIL_RE.test(email) ? 'Enter a valid email address' : null;
 
   const mut = useMutation({
     mutationFn: () => api.patch('/users/me', { name, email, vehicleType, numberPlate }),
     onSuccess: (res) => {
+      const updated = res.data.data;
       useAuthStore.setState((s) => ({
-        user: s.user ? { ...s.user, ...res.data.data } : s.user,
+        user: s.user ? { ...s.user, ...updated } : s.user,
       }));
+      initial.current = { name, email, vehicleType, numberPlate };
       addToast('success', 'Profile updated successfully');
     },
     onError: () => addToast('error', 'Failed to update profile'),
@@ -47,21 +80,43 @@ function ProfileTab() {
       <div className="lg:col-span-3 space-y-4">
         <div>
           <label className="ff-label">Full Name</label>
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your full name" className="ff-input" />
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Your full name"
+            className="ff-input"
+          />
         </div>
         <div>
           <label className="ff-label">Phone Number</label>
-          <input value={user?.phone ?? ''} readOnly className="ff-input bg-gray-50 text-gray-400 cursor-not-allowed" />
+          <input
+            value={user?.phone ?? ''}
+            readOnly
+            className="ff-input bg-gray-50 text-gray-400 cursor-not-allowed"
+          />
           <p className="text-xs text-gray-400 mt-1">Phone number cannot be changed. Contact support if needed.</p>
         </div>
         <div>
-          <label className="ff-label">Email Address <span className="text-gray-400 font-normal">(optional)</span></label>
-          <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="you@example.com" className="ff-input" />
+          <label className="ff-label">
+            Email Address <span className="text-gray-400 font-normal">(optional)</span>
+          </label>
+          <input
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            type="email"
+            placeholder="you@example.com"
+            className={cn('ff-input', emailError && 'ff-input-error')}
+          />
+          {emailError && <p className="ff-error">{emailError}</p>}
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="ff-label">Vehicle Type</label>
-            <select value={vehicleType} onChange={(e) => setVehicleType(e.target.value)} className="ff-input">
+            <select
+              value={vehicleType}
+              onChange={(e) => setVehicleType(e.target.value)}
+              className="ff-input"
+            >
               <option value="">Select vehicle type</option>
               {VEHICLE_TYPES.map((v) => <option key={v} value={v}>{v}</option>)}
             </select>
@@ -77,10 +132,17 @@ function ProfileTab() {
           </div>
         </div>
         <div className="pt-1">
-          <button onClick={() => mut.mutate()} disabled={mut.isPending} className="btn-primary h-10 px-6 flex items-center gap-2">
+          <button
+            onClick={() => mut.mutate()}
+            disabled={mut.isPending || !isDirty || !!emailError}
+            className="btn-primary h-10 px-6 flex items-center gap-2 disabled:opacity-50"
+          >
             {mut.isPending ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle size={15} />}
             Save Changes
           </button>
+          {!isDirty && !mut.isPending && (
+            <p className="text-xs text-gray-400 mt-2">No changes to save</p>
+          )}
         </div>
       </div>
 
@@ -95,7 +157,7 @@ function ProfileTab() {
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <Phone size={13} className="text-gray-400" /> {user?.phone}
             </div>
-            {email && (
+            {email && !emailError && (
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <Mail size={13} className="text-gray-400" /> {email}
               </div>
@@ -123,20 +185,56 @@ function ProfileTab() {
   );
 }
 
-/* ── Notifications Tab ─────────────────────────────────────────── */
-type NotifPrefs = { smsOnAccepted: boolean; smsOnPickedUp: boolean; smsOnDelivered: boolean; smsOnDispute: boolean; emailDigest: boolean };
+/* ── Notifications Tab ───────────────────────────────────────────── */
+type NotifPrefs = {
+  smsOnAccepted:  boolean;
+  smsOnPickedUp:  boolean;
+  smsOnDelivered: boolean;
+  smsOnDispute:   boolean;
+  emailDigest:    boolean;
+};
+
+const DEFAULT_NOTIF_PREFS: NotifPrefs = {
+  smsOnAccepted:  true,
+  smsOnPickedUp:  true,
+  smsOnDelivered: true,
+  smsOnDispute:   true,
+  emailDigest:    false,
+};
 
 function NotificationsTab() {
+  const qc       = useQueryClient();
   const addToast = useToastStore((s) => s.addToast);
-  const [prefs, setPrefs] = useState<NotifPrefs>({ smsOnAccepted: true, smsOnPickedUp: true, smsOnDelivered: true, smsOnDispute: true, emailDigest: false });
+  const [prefs,  setPrefs]  = useState<NotifPrefs>(DEFAULT_NOTIF_PREFS);
+  const initial  = useRef<NotifPrefs>(DEFAULT_NOTIF_PREFS);
+
+  const { data: savedPrefs } = useQuery({
+    queryKey: ['notification-prefs'],
+    queryFn:  () => api.get('/users/notification-prefs').then((r) => r.data.data as NotifPrefs),
+    staleTime: 60_000,
+  });
+
+  useEffect(() => {
+    if (!savedPrefs) return;
+    setPrefs(savedPrefs);
+    initial.current = savedPrefs;
+  }, [savedPrefs]);
+
+  const isDirty = JSON.stringify(prefs) !== JSON.stringify(initial.current);
 
   const mut = useMutation({
     mutationFn: () => api.patch('/users/notification-prefs', prefs),
-    onSuccess: () => addToast('success', 'Notification preferences saved'),
-    onError:   () => addToast('error',   'Failed to save preferences'),
+    onSuccess: () => {
+      initial.current = { ...prefs };
+      qc.invalidateQueries({ queryKey: ['notification-prefs'] });
+      addToast('success', 'Notification preferences saved');
+    },
+    onError: () => addToast('error', 'Failed to save preferences'),
   });
 
-  function toggle(key: keyof NotifPrefs) { setPrefs((p) => ({ ...p, [key]: !p[key] })); }
+  function toggle(key: keyof NotifPrefs) {
+    setPrefs((p) => ({ ...p, [key]: !p[key] }));
+  }
 
   const items: { key: keyof NotifPrefs; label: string; desc: string }[] = [
     { key: 'smsOnAccepted',  label: 'New Load Assigned',   desc: 'SMS when a load is assigned to you' },
@@ -160,41 +258,86 @@ function NotificationsTab() {
             </div>
             <button
               onClick={() => toggle(key)}
-              className={cn('relative rounded-full transition-colors shrink-0', prefs[key] ? 'bg-[#1E3A8A]' : 'bg-gray-200')}
               style={{ width: 40, height: 22 }}
-              role="switch" aria-checked={prefs[key]}
+              className={cn('relative rounded-full transition-colors shrink-0', prefs[key] ? 'bg-[#1E3A8A]' : 'bg-gray-200')}
+              role="switch"
+              aria-checked={prefs[key]}
+              aria-label={label}
             >
-              <span className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform"
-                style={{ transform: prefs[key] ? 'translateX(18px)' : undefined }} />
+              <span
+                className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform"
+                style={{ transform: prefs[key] ? 'translateX(18px)' : undefined }}
+              />
             </button>
           </div>
         ))}
       </div>
-      <button onClick={() => mut.mutate()} disabled={mut.isPending} className="btn-primary h-10 px-6 flex items-center gap-2">
-        {mut.isPending ? <Loader2 size={15} className="animate-spin" /> : 'Save Preferences'}
-      </button>
+      <div className="flex items-center gap-4">
+        <button
+          onClick={() => mut.mutate()}
+          disabled={mut.isPending || !isDirty}
+          className="btn-primary h-10 px-6 flex items-center gap-2 disabled:opacity-50"
+        >
+          {mut.isPending ? <Loader2 size={15} className="animate-spin" /> : 'Save Preferences'}
+        </button>
+        {!isDirty && !mut.isPending && (
+          <p className="text-xs text-gray-400">No changes to save</p>
+        )}
+      </div>
     </div>
   );
 }
 
-/* ── Preferences Tab ───────────────────────────────────────────── */
+/* ── Preferences Tab ─────────────────────────────────────────────── */
+type UserPrefs = { defaultOrigin: string; currency: string; weightUnit: string };
+
+const DEFAULT_USER_PREFS: UserPrefs = { defaultOrigin: '', currency: 'KES', weightUnit: 'tonnes' };
+
 function PreferencesTab() {
+  const qc       = useQueryClient();
   const addToast = useToastStore((s) => s.addToast);
   const [defaultOrigin, setDefaultOrigin] = useState('');
   const [currency,      setCurrency]      = useState('KES');
   const [weightUnit,    setWeightUnit]    = useState('tonnes');
+  const initial = useRef<UserPrefs>(DEFAULT_USER_PREFS);
+
+  const { data: savedPrefs } = useQuery({
+    queryKey: ['user-preferences'],
+    queryFn:  () => api.get('/users/preferences').then((r) => r.data.data as UserPrefs),
+    staleTime: 60_000,
+  });
+
+  useEffect(() => {
+    if (!savedPrefs) return;
+    setDefaultOrigin(savedPrefs.defaultOrigin ?? '');
+    setCurrency(savedPrefs.currency ?? 'KES');
+    setWeightUnit(savedPrefs.weightUnit ?? 'tonnes');
+    initial.current = savedPrefs;
+  }, [savedPrefs]);
+
+  const current: UserPrefs = { defaultOrigin, currency, weightUnit };
+  const isDirty = JSON.stringify(current) !== JSON.stringify(initial.current);
 
   const mut = useMutation({
-    mutationFn: () => api.patch('/users/preferences', { defaultOrigin, currency, weightUnit }),
-    onSuccess: () => addToast('success', 'Preferences saved'),
-    onError:   () => addToast('error',   'Failed to save preferences'),
+    mutationFn: () => api.patch('/users/preferences', current),
+    onSuccess: () => {
+      initial.current = { ...current };
+      qc.invalidateQueries({ queryKey: ['user-preferences'] });
+      addToast('success', 'Preferences saved');
+    },
+    onError: () => addToast('error', 'Failed to save preferences'),
   });
 
   return (
     <div className="max-w-sm space-y-4">
       <div>
         <label className="ff-label">Default Home Location</label>
-        <input value={defaultOrigin} onChange={(e) => setDefaultOrigin(e.target.value)} placeholder="e.g. Nairobi" className="ff-input" />
+        <input
+          value={defaultOrigin}
+          onChange={(e) => setDefaultOrigin(e.target.value)}
+          placeholder="e.g. Nairobi"
+          className="ff-input"
+        />
         <p className="text-xs text-gray-400 mt-1">Your typical base location for load matching.</p>
       </div>
       <div>
@@ -211,16 +354,23 @@ function PreferencesTab() {
           <option value="kg">Kilograms (kg)</option>
         </select>
       </div>
-      <div className="pt-1">
-        <button onClick={() => mut.mutate()} disabled={mut.isPending} className="btn-primary h-10 px-6 flex items-center gap-2">
+      <div className="pt-1 flex items-center gap-4">
+        <button
+          onClick={() => mut.mutate()}
+          disabled={mut.isPending || !isDirty}
+          className="btn-primary h-10 px-6 flex items-center gap-2 disabled:opacity-50"
+        >
           {mut.isPending ? <Loader2 size={15} className="animate-spin" /> : 'Save Preferences'}
         </button>
+        {!isDirty && !mut.isPending && (
+          <p className="text-xs text-gray-400">No changes to save</p>
+        )}
       </div>
     </div>
   );
 }
 
-/* ── Page ──────────────────────────────────────────────────────── */
+/* ── Page ────────────────────────────────────────────────────────── */
 export default function SettingsPage() {
   const [tab, setTab] = useState<Tab>('profile');
 
