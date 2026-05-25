@@ -86,6 +86,29 @@ export interface ApiResponse<T = unknown> {
   error?: string;
 }
 
+export interface AdminUser {
+  id: string;
+  name: string;
+  email?: string;
+  phone: string;
+  role: UserRole;
+  company?: string;
+  isVerified: boolean;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface BillingRecord {
+  id: string;
+  description: string;
+  amount: number;
+  currency: string;
+  status: 'PAID' | 'PENDING' | 'FAILED';
+  date: string;
+  invoiceUrl?: string;
+}
+
 export type DocStatus = 'PENDING' | 'UNDER_REVIEW' | 'VERIFIED' | 'REJECTED';
 export type DocType =
   | 'COMMERCIAL_INVOICE'
