@@ -85,3 +85,27 @@ export interface ApiResponse<T = unknown> {
   message?: string;
   error?: string;
 }
+
+export type DocStatus = 'PENDING' | 'UNDER_REVIEW' | 'VERIFIED' | 'REJECTED';
+export type DocType =
+  | 'COMMERCIAL_INVOICE'
+  | 'PACKING_LIST'
+  | 'BILL_OF_LADING'
+  | 'CUSTOMS_DECLARATION'
+  | 'OTHER';
+
+export interface Document {
+  id: string;
+  tenantId: string;
+  userId: string;
+  loadId?: string;
+  type: DocType;
+  status: DocStatus;
+  fileUrl: string;
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  rejectNote?: string;
+  createdAt: string;
+  updatedAt: string;
+}
