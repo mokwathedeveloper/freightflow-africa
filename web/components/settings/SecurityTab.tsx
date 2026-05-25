@@ -6,6 +6,7 @@ import { Eye, EyeOff, Loader2, CheckCircle, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import api from '@/lib/api';
 import { useToastStore } from '@/store/toast.store';
+import PasswordStrengthMeter from './PasswordStrengthMeter';
 
 type Step = 'form' | 'otp' | 'done';
 
@@ -139,6 +140,7 @@ export function SecurityTab() {
             {showNew ? <EyeOff size={15} /> : <Eye size={15} />}
           </button>
         </div>
+        <PasswordStrengthMeter password={newPw} />
       </div>
       <div>
         <label className="ff-label">Confirm New Password</label>
