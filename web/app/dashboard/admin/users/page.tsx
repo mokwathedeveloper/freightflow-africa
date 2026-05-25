@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Users, Search, Plus } from 'lucide-react';
+import { Users, Search, Plus, UserX, UserCheck, Trash2 } from 'lucide-react';
 import { formatDate, cn } from '@/lib/utils';
 import api from '@/lib/api';
 import { useToastStore } from '@/store/toast.store';
@@ -169,14 +169,41 @@ const STATUS_OPTIONS = [
 ];
 
 export default function AdminUsersPage() {
+  const qc       = useQueryClient();
+  const addToast = useToastStore((s) => s.addToast);
+
   const [search,       setSearch]       = useState('');
   const [roleFilter,   setRoleFilter]   = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [editUser,     setEditUser]     = useState<AdminUser | null>(null);
+  const [deleteUser,   setDeleteUser]   = useState<AdminUser | null>(null);
 
   const { data, isLoading } = useQuery<UsersResponse>({
     queryKey: ['admin-users'],
     queryFn: () => api.get('/admin/users').then((r) => r.data),
+  });
+
+  const toggleActiveMut = useMutation({
+    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
+      api.patch(`/admin/users/${id}`, { isActive }),
+    onSuccess: (_, { isActive }) => {
+      qc.invalidateQueries({ queryKey: ['admin-users'] });
+      addToast('success', isActive ? 'User activated' : 'User suspended');
+    },
+    onError: () => addToast('error', 'Failed to update user status'),
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: (id: string) => api.delete(`/admin/users/${id}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-users'] });
+      addToast('success', 'User deleted');
+      setDeleteUser(null);
+    },
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? 'Failed to delete user';
+      addToast('error', msg);
+    },
   });
 
   const users = (data?.data?.users ?? []).filter((u) => {
@@ -245,12 +272,36 @@ export default function AdminUsersPage() {
       key: 'id',
       header: 'Actions',
       render: (_, u) => (
-        <button
-          onClick={(e) => { e.stopPropagation(); setEditUser(u); }}
-          className="text-xs font-medium text-[#1E3A8A] hover:underline px-2 py-1 rounded hover:bg-blue-50 transition-colors"
-        >
-          Edit
-        </button>
+        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+          <button
+            onClick={() => setEditUser(u)}
+            className="text-xs font-medium text-[#1E3A8A] hover:underline px-2 py-1 rounded hover:bg-blue-50 transition-colors"
+          >
+            Edit
+          </button>
+          <button
+            onClick={() => toggleActiveMut.mutate({ id: u.id, isActive: !u.isActive })}
+            disabled={toggleActiveMut.isPending}
+            title={u.isActive ? 'Suspend user' : 'Activate user'}
+            className={cn(
+              'p-1.5 rounded transition-colors disabled:opacity-40',
+              u.isActive
+                ? 'text-amber-600 hover:bg-amber-50'
+                : 'text-green-600 hover:bg-green-50'
+            )}
+          >
+            {u.isActive ? <UserX size={13} /> : <UserCheck size={13} />}
+          </button>
+          {u.role !== 'ADMIN' && (
+            <button
+              onClick={() => setDeleteUser(u)}
+              title="Delete user"
+              className="p-1.5 rounded text-red-500 hover:bg-red-50 transition-colors"
+            >
+              <Trash2 size={13} />
+            </button>
+          )}
+        </div>
       ),
     },
   ];
@@ -326,6 +377,43 @@ export default function AdminUsersPage() {
       >
         {editUser && (
           <EditUserModal user={editUser} onClose={() => setEditUser(null)} />
+        )}
+      </Modal>
+
+      {/* Delete confirmation modal */}
+      <Modal
+        isOpen={!!deleteUser}
+        onClose={() => setDeleteUser(null)}
+        title="Delete User"
+        size="sm"
+      >
+        {deleteUser && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 p-3 bg-red-50 border border-red-100 rounded-lg">
+              <Trash2 size={16} className="text-red-600 shrink-0" />
+              <p className="text-sm text-red-700">
+                This will permanently delete{' '}
+                <strong>{deleteUser.name}</strong> and all their data.
+                This cannot be undone.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => deleteMut.mutate(deleteUser.id)}
+                disabled={deleteMut.isPending}
+                className="flex-1 h-9 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-60 transition-colors"
+              >
+                {deleteMut.isPending ? 'Deleting...' : 'Delete User'}
+              </button>
+              <button
+                onClick={() => setDeleteUser(null)}
+                disabled={deleteMut.isPending}
+                className="flex-1 h-9 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
         )}
       </Modal>
     </div>
