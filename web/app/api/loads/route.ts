@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireRole } from '@/lib/auth';
+import { logAudit } from '@/lib/audit';
 import { postLoadSchema } from '@/lib/validators';
 import { sendSMS } from '@/lib/services/sms.service';
 import { Prisma } from '@prisma/client';
@@ -75,6 +76,16 @@ export async function POST(req: NextRequest) {
 
     await prisma.loadStatusLog.create({
       data: { loadId: load.id, status: 'POSTED', changedBy: auth.user.userId, channel: 'WEB' },
+    });
+
+    logAudit({
+      userId: auth.user.userId,
+      tenantId: auth.user.tenantId,
+      action: 'LOAD_STATUS_CHANGED',
+      resource: 'Load',
+      resourceId: load.id,
+      metadata: { status: 'POSTED', shortId: load.shortId, origin: body.origin, destination: body.destination },
+      ipAddress: req.headers.get('x-forwarded-for') ?? undefined,
     });
 
     // Notify all active transporters in the tenant via AT SMS
