@@ -16,29 +16,25 @@ export async function PATCH(
     const { id } = await params;
     const { isActive, role } = await req.json();
 
-    const target = await prisma.user.findFirst({
-      where: { id, tenantId: auth.user.tenantId },
+    const updateData: { isActive?: boolean; role?: UserRole } = {};
+    if (typeof isActive === 'boolean') updateData.isActive = isActive;
+    if (role && VALID_ROLES.includes(role as UserRole)) updateData.role = role as UserRole;
+
+    const updated = await prisma.$transaction(async (tx) => {
+      const target = await tx.user.findFirst({
+        where: { id, tenantId: auth.user.tenantId },
+      });
+      if (!target) return null;
+      return tx.user.update({
+        where: { id },
+        data: updateData,
+        select: { id: true, name: true, phone: true, role: true, isActive: true },
+      });
     });
 
-    if (!target) {
+    if (!updated) {
       return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
     }
-
-    const updateData: { isActive?: boolean; role?: UserRole } = {};
-
-    if (typeof isActive === 'boolean') {
-      updateData.isActive = isActive;
-    }
-
-    if (role && VALID_ROLES.includes(role as UserRole)) {
-      updateData.role = role as UserRole;
-    }
-
-    const updated = await prisma.user.update({
-      where: { id },
-      data: updateData,
-      select: { id: true, name: true, phone: true, role: true, isActive: true },
-    });
 
     return NextResponse.json({ success: true, data: updated });
   } catch {

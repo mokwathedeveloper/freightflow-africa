@@ -12,6 +12,8 @@ import { formatDate, cn } from '@/lib/utils';
 import api from '@/lib/api';
 import type { Load } from '@/types';
 import { KENYAN_CITIES, CARGO_TYPES } from '@/constants';
+import DataTable, { Column } from '@/components/Table/DataTable';
+import FilterDropdown, { FilterOption } from '@/components/Filters/FilterDropdown';
 
 interface LoadsResponse {
   data: { loads: Load[]; total: number; page: number; pages: number };
@@ -110,34 +112,37 @@ export default function BrowseLoadsPage() {
           </div>
 
           {/* Origin filter */}
-          <select
-            value={origin}
-            onChange={(e) => setOrigin(e.target.value)}
-            className="ff-input sm:w-44"
-          >
-            <option value="">All Origins</option>
-            {KENYAN_CITIES.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
+          <FilterDropdown
+            label="All Origins"
+            options={[
+              { label: 'All Origins', value: '' },
+              ...KENYAN_CITIES.map((c) => ({ label: c, value: c })),
+            ] as FilterOption[]}
+            selected={origin}
+            onChange={setOrigin}
+          />
 
           {/* Destination filter */}
-          <select
-            value={destination}
-            onChange={(e) => setDestination(e.target.value)}
-            className="ff-input sm:w-44"
-          >
-            <option value="">All Destinations</option>
-            {KENYAN_CITIES.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
+          <FilterDropdown
+            label="All Destinations"
+            options={[
+              { label: 'All Destinations', value: '' },
+              ...KENYAN_CITIES.map((c) => ({ label: c, value: c })),
+            ] as FilterOption[]}
+            selected={destination}
+            onChange={setDestination}
+          />
 
           {/* Cargo Type filter */}
-          <select
-            value={cargoType}
-            onChange={(e) => setCargoType(e.target.value)}
-            className="ff-input sm:w-44"
-          >
-            <option value="">All Cargo Types</option>
-            {CARGO_TYPES.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
+          <FilterDropdown
+            label="All Cargo Types"
+            options={[
+              { label: 'All Cargo Types', value: '' },
+              ...CARGO_TYPES.map((c) => ({ label: c, value: c })),
+            ] as FilterOption[]}
+            selected={cargoType}
+            onChange={setCargoType}
+          />
         </div>
       </div>
 
@@ -183,103 +188,103 @@ export default function BrowseLoadsPage() {
             </button>
           </div>
         ) : (
-          <table className="w-full data-table">
-            <thead>
-              <tr>
-                <th>Load ID</th>
-                <th>Shipper</th>
-                <th>Route</th>
-                <th>Cargo Type</th>
-                <th>Weight</th>
-                <th>Date</th>
-                <th className="text-right pr-5">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loads.map((load) => {
-                const companyName = load.shipper?.company || load.shipper?.name || 'Unknown';
-                const bg  = avatarColor(companyName);
-                const ini = initials(companyName);
-                const accepting = acceptingId === load.id;
-
-                return (
-                  <tr key={load.id} className="group">
-                    {/* Load ID */}
-                    <td>
-                      <span className="font-mono text-xs text-gray-500 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded">
-                        {load.shortId}
-                      </span>
-                    </td>
-
-                    {/* Shipper */}
-                    <td>
-                      <div className="flex items-center gap-2.5">
-                        <div className={cn(
-                          'w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0',
-                          bg
-                        )}>
-                          {ini}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate max-w-[120px]">
-                            {companyName}
-                          </p>
-                        </div>
+          <DataTable<Load>
+            columns={[
+              {
+                key: 'shortId',
+                header: 'Load ID',
+                render: (_, l) => (
+                  <span className="font-mono text-xs text-gray-500 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded">
+                    {l.shortId}
+                  </span>
+                ),
+              },
+              {
+                key: 'shipperId',
+                header: 'Shipper',
+                render: (_, l) => {
+                  const name = l.shipper?.company || l.shipper?.name || 'Unknown';
+                  return (
+                    <div className="flex items-center gap-2.5">
+                      <div className={cn(
+                        'w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0',
+                        avatarColor(name)
+                      )}>
+                        {initials(name)}
                       </div>
-                    </td>
-
-                    {/* Route */}
-                    <td>
-                      <div className="flex items-center gap-1 text-sm">
-                        <span className="font-semibold text-gray-900">{load.origin}</span>
-                        <span className="text-gray-300 mx-0.5">→</span>
-                        <span className="font-semibold text-gray-900">{load.destination}</span>
-                      </div>
-                    </td>
-
-                    {/* Cargo Type */}
-                    <td>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-                        {load.cargoType}
-                      </span>
-                    </td>
-
-                    {/* Weight */}
-                    <td className="text-sm text-gray-600 tabular-nums">
-                      {load.weight} t
-                    </td>
-
-                    {/* Date */}
-                    <td className="text-sm text-gray-600">
-                      {formatDate(load.deliveryDate)}
-                    </td>
-
-                    {/* Actions */}
-                    <td className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Link
-                          href={`/dashboard/transporter/track/${load.id}`}
-                          className="h-8 px-3 inline-flex items-center gap-1.5 text-xs font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-colors"
-                        >
-                          Details <ChevronRight size={11} />
-                        </Link>
-                        <Button
-                          size="sm"
-                          onClick={() => acceptMut.mutate(load.id)}
-                          disabled={accepting}
-                          className="h-8 px-3 text-xs"
-                        >
-                          {accepting
-                            ? <><Loader2 className="animate-spin" size={12} /> Accepting…</>
-                            : <><CheckCircle2 size={13} /> Accept Load</>}
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      <p className="text-sm font-medium text-gray-900 truncate max-w-[120px]">{name}</p>
+                    </div>
+                  );
+                },
+              },
+              {
+                key: 'origin',
+                header: 'Route',
+                sortable: true,
+                render: (_, l) => (
+                  <div className="flex items-center gap-1 text-sm">
+                    <span className="font-semibold text-gray-900">{l.origin}</span>
+                    <span className="text-gray-300 mx-0.5">→</span>
+                    <span className="font-semibold text-gray-900">{l.destination}</span>
+                  </div>
+                ),
+              },
+              {
+                key: 'cargoType',
+                header: 'Cargo Type',
+                render: (_, l) => (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                    {l.cargoType}
+                  </span>
+                ),
+              },
+              {
+                key: 'weight',
+                header: 'Weight',
+                render: (_, l) => (
+                  <span className="text-sm text-gray-600 tabular-nums">{l.weight} t</span>
+                ),
+              },
+              {
+                key: 'deliveryDate',
+                header: 'Date',
+                sortable: true,
+                render: (_, l) => (
+                  <span className="text-sm text-gray-600">{formatDate(l.deliveryDate)}</span>
+                ),
+              },
+              {
+                key: 'id',
+                header: 'Actions',
+                render: (_, l) => {
+                  const accepting = acceptingId === l.id;
+                  return (
+                    <div className="flex items-center justify-end gap-2">
+                      <Link
+                        href={`/dashboard/transporter/track/${l.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="h-8 px-3 inline-flex items-center gap-1.5 text-xs font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-colors"
+                      >
+                        Details <ChevronRight size={11} />
+                      </Link>
+                      <Button
+                        size="sm"
+                        onClick={(e) => { e.stopPropagation(); acceptMut.mutate(l.id); }}
+                        disabled={accepting}
+                        className="h-8 px-3 text-xs"
+                      >
+                        {accepting
+                          ? <><Loader2 className="animate-spin" size={12} /> Accepting…</>
+                          : <><CheckCircle2 size={13} /> Accept Load</>}
+                      </Button>
+                    </div>
+                  );
+                },
+              },
+            ] as Column<Load>[]}
+            data={loads}
+            keyField="id"
+          />
         )}
       </div>
 

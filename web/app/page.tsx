@@ -3,6 +3,7 @@ import {
   Truck, Package, MessageSquare, Radio,
   Zap, Shield, MapPin, Phone, Star,
   CheckCircle, Clock, Globe, ChevronRight,
+  X, BarChart2, TrendingUp as TrendingUpIcon,
 } from 'lucide-react';
 import PublicNavbar from '@/components/layout/PublicNavbar';
 import PublicFooter from '@/components/layout/PublicFooter';
@@ -117,6 +118,28 @@ const TRUST_STATS = [
   { value: '12',     label: 'Counties Covered' },
 ];
 
+const MARKET_STATS = [
+  { value: '$184M',   label: 'African Freight Market 2026', icon: BarChart2, color: 'text-[#1E3A8A]' },
+  { value: '$303M',   label: 'Projected by 2034',           icon: TrendingUpIcon, color: 'text-[#16A34A]' },
+  { value: '70%',     label: 'Drivers on basic phones',     icon: Phone, color: 'text-amber-600' },
+  { value: '0',       label: 'Competitors with USSD',       icon: X, color: 'text-red-500' },
+];
+
+// Competitor comparison data
+const COMPETITORS = ['Kobo360', 'Lori Systems', 'Trella', 'Amitruck'];
+type FeatureRow = { feature: string; freightflow: boolean; others: boolean; note?: string };
+const FEATURE_MATRIX: FeatureRow[] = [
+  { feature: 'USSD status updates (no internet)',   freightflow: true,  others: false, note: 'Only Sendy had this — now closed' },
+  { feature: 'Airtime rewards for drivers',          freightflow: true,  others: false, note: 'Zero competitors implement this' },
+  { feature: 'SMS alerts via Africa\'s Talking',     freightflow: true,  others: false, note: 'AT-native vs custom SMS providers' },
+  { feature: 'SME / small load marketplace',         freightflow: true,  others: false, note: '80% of African logistics is informal' },
+  { feature: 'Voice call alerts (critical events)',  freightflow: true,  others: false, note: 'Automated IVR for delays & disputes' },
+  { feature: 'Real-time GPS cargo tracking',         freightflow: true,  others: true  },
+  { feature: 'Dispute resolution with escrow',       freightflow: true,  others: true  },
+  { feature: 'Driver vetting & rating system',       freightflow: true,  others: true  },
+  { feature: 'Cross-border (AfCFTA) support',        freightflow: true,  others: false, note: 'Kobo360 developing; others: none' },
+];
+
 const TRUSTED_BRANDS = [
   'Kenya Airways Cargo',
   'TotalEnergies EA',
@@ -200,7 +223,7 @@ function HeroMockup() {
 
         {/* SMS notification */}
         <div className="bg-[#16A34A]/30 border border-green-400/20 rounded-xl px-3 py-2 flex items-center gap-2">
-          <div className="w-1.5 h-1.5 rounded-full bg-green-400 shrink-0" style={{ animation: 'pulse 2s infinite' }} />
+          <div className="w-1.5 h-1.5 rounded-full bg-green-400 shrink-0 animate-pulse" />
           <span className="text-xs text-green-200">SMS sent: Load accepted by Peter K. ✓</span>
         </div>
       </div>
@@ -408,6 +431,69 @@ export default function Home() {
                 <p className="text-white text-3xl font-mono font-black tracking-wider">*384*7447#</p>
                 <p className="text-white/60 text-xs mt-2">Update status · Check jobs · View payments</p>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Market Size & Competitive Moat ───────────────────────── */}
+      <section className="py-16 px-5 bg-white border-t border-gray-100" id="why-us">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-10">
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Market Position</p>
+            <h2 className="text-2xl font-bold text-gray-900">Why FreightFlow wins</h2>
+            <p className="text-sm text-gray-500 mt-2 max-w-md mx-auto">
+              Africa&apos;s freight market is $184M today, growing to $303M by 2034. None of our
+              competitors serve feature-phone drivers or small shippers.
+            </p>
+          </div>
+
+          {/* Market stats */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-10">
+            {MARKET_STATS.map(({ value, label, icon: Icon, color }) => (
+              <div key={label} className="bg-gray-50 border border-gray-200 rounded-xl p-4 text-center">
+                <Icon size={18} className={`${color} mx-auto mb-2`} />
+                <p className={`text-2xl font-black ${color}`}>{value}</p>
+                <p className="text-xs text-gray-500 mt-0.5 leading-tight">{label}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Comparison table */}
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="bg-gray-50 border-b border-gray-200 grid grid-cols-3 text-xs font-bold text-gray-600 uppercase tracking-wider">
+              <div className="px-5 py-3">Feature</div>
+              <div className="px-4 py-3 text-center border-l border-gray-200">
+                <span className="text-[#1E3A8A]">FreightFlow</span>
+              </div>
+              <div className="px-4 py-3 text-center border-l border-gray-200 text-gray-400">
+                Kobo360 / Lori / Trella
+              </div>
+            </div>
+            <div className="divide-y divide-gray-100">
+              {FEATURE_MATRIX.map(({ feature, freightflow, others, note }) => (
+                <div key={feature} className="grid grid-cols-3 items-start hover:bg-gray-50/60 transition-colors">
+                  <div className="px-5 py-3">
+                    <p className="text-sm text-gray-800">{feature}</p>
+                    {note && <p className="text-xs text-gray-400 mt-0.5">{note}</p>}
+                  </div>
+                  <div className="px-4 py-3 flex justify-center border-l border-gray-100">
+                    {freightflow
+                      ? <CheckCircle size={18} className="text-[#16A34A]" />
+                      : <X size={16} className="text-gray-300" />}
+                  </div>
+                  <div className="px-4 py-3 flex justify-center border-l border-gray-100">
+                    {others
+                      ? <CheckCircle size={18} className="text-gray-400" />
+                      : <X size={16} className="text-red-400" />}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="bg-[#1E3A8A]/5 border-t border-gray-200 px-5 py-3">
+              <p className="text-xs text-gray-500">
+                * Sendy (Kenya) was the only platform with USSD — they shut down in 2024. FreightFlow fills this gap.
+              </p>
             </div>
           </div>
         </div>

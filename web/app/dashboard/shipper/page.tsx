@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   Package, Truck, CheckCircle, AlertTriangle,
   PlusCircle, ChevronRight, TrendingUp,
@@ -16,6 +17,7 @@ import { useAuthStore } from '@/store/auth.store';
 import api from '@/lib/api';
 import { formatDate } from '@/lib/utils';
 import type { Load } from '@/types';
+import DataTable, { Column } from '@/components/Table/DataTable';
 
 interface MyLoadsResponse {
   data: { loads: Load[]; total: number };
@@ -65,6 +67,7 @@ function buildChartData(loads: Load[]) {
 }
 
 export default function ShipperPage() {
+  const router = useRouter();
   const user = useAuthStore((s) => s.user);
 
   const { data, isLoading } = useQuery<MyLoadsResponse>({
@@ -88,7 +91,7 @@ export default function ShipperPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold text-gray-900">
-            Welcome back, {user?.name.split(' ')[0]}
+            Welcome back, {user?.name?.split(' ')[0] ?? 'there'}
           </h2>
           <p className="text-sm text-gray-500 mt-0.5">Here&apos;s your freight overview</p>
         </div>
@@ -210,30 +213,49 @@ export default function ShipperPage() {
             </Link>
           </div>
         ) : (
-          <table className="w-full data-table">
-            <thead>
-              <tr>
-                <th>Load ID</th>
-                <th>Route</th>
-                <th>Cargo</th>
-                <th>Date</th>
-                <th>Status</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {recent.map((load) => (
-                <tr key={load.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => window.location.href = `/dashboard/shipper/track/${load.id}`}>
-                  <td className="font-mono text-xs text-gray-500">{load.shortId}</td>
-                  <td className="font-medium">{load.origin} → {load.destination}</td>
-                  <td className="text-gray-500">{load.cargoType}</td>
-                  <td className="text-gray-500">{formatDate(load.deliveryDate)}</td>
-                  <td><LoadStatusBadge status={load.status} /></td>
-                  <td><ChevronRight size={14} className="text-gray-400" /></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <DataTable<Load>
+            columns={[
+              {
+                key: 'shortId',
+                header: 'Load ID',
+                render: (_, l) => (
+                  <span className="font-mono text-xs text-gray-500">{l.shortId}</span>
+                ),
+              },
+              {
+                key: 'origin',
+                header: 'Route',
+                render: (_, l) => (
+                  <span className="text-sm font-medium text-gray-800">{l.origin} → {l.destination}</span>
+                ),
+              },
+              {
+                key: 'cargoType',
+                header: 'Cargo',
+                render: (_, l) => <span className="text-sm text-gray-500">{l.cargoType}</span>,
+              },
+              {
+                key: 'deliveryDate',
+                header: 'Date',
+                render: (_, l) => (
+                  <span className="text-sm text-gray-500">{formatDate(l.deliveryDate)}</span>
+                ),
+              },
+              {
+                key: 'status',
+                header: 'Status',
+                render: (_, l) => <LoadStatusBadge status={l.status} />,
+              },
+              {
+                key: 'id',
+                header: '',
+                render: () => <ChevronRight size={14} className="text-gray-400" />,
+              },
+            ] as Column<Load>[]}
+            data={recent}
+            keyField="id"
+            onRowClick={(l) => router.push(`/dashboard/shipper/track/${l.id}`)}
+          />
         )}
       </div>
     </div>

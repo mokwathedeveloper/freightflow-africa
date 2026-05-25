@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import {
@@ -13,6 +14,7 @@ import { formatDate, formatDateTime, cn } from '@/lib/utils';
 import { useToastStore } from '@/store/toast.store';
 import api from '@/lib/api';
 import type { Load, LoadStatus } from '@/types';
+import DataTable, { Column } from '@/components/Table/DataTable';
 
 interface MyLoadsResponse {
   data: { loads: Load[]; total: number };
@@ -150,6 +152,7 @@ function UpdateStatusModal({ load, onClose }: UpdateModalProps) {
 }
 
 export default function JobsPage() {
+  const router = useRouter();
   const [filter, setFilter] = useState('ALL');
   const [modalLoad, setModalLoad] = useState<Load | null>(null);
 
@@ -242,77 +245,89 @@ export default function JobsPage() {
             </Link>
           </div>
         ) : (
-          <table className="w-full data-table">
-            <thead>
-              <tr>
-                <th>Load ID</th>
-                <th>Route</th>
-                <th>Cargo</th>
-                <th>Shipper</th>
-                <th>Due Date</th>
-                <th>Status</th>
-                <th className="text-right pr-5">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loads.map((load) => {
-                const hasAction = !!NEXT_STATUS[load.status as LoadStatus];
-                const shipperName = load.shipper?.company || load.shipper?.name || '—';
-                return (
-                  <tr key={load.id} className="group cursor-pointer hover:bg-gray-50/60"
-                    onClick={() => window.location.href = `/dashboard/transporter/track/${load.id}`}
-                  >
-                    {/* Load ID */}
-                    <td>
-                      <span className="font-mono text-xs text-gray-500 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded">
-                        {load.shortId}
-                      </span>
-                    </td>
-
-                    {/* Route */}
-                    <td>
-                      <span className="font-medium text-gray-900">{load.origin}</span>
-                      <span className="text-gray-300 mx-1">→</span>
-                      <span className="font-medium text-gray-900">{load.destination}</span>
-                    </td>
-
-                    {/* Cargo */}
-                    <td className="text-gray-600 text-sm">{load.cargoType} · {load.weight}t</td>
-
-                    {/* Shipper */}
-                    <td className="text-gray-600 text-sm max-w-[130px] truncate">{shipperName}</td>
-
-                    {/* Due Date */}
-                    <td className="text-gray-600 text-sm">{formatDate(load.deliveryDate)}</td>
-
-                    {/* Status */}
-                    <td><LoadStatusBadge status={load.status} /></td>
-
-                    {/* Actions */}
-                    <td className="text-right" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center justify-end gap-2 pr-1">
-                        {hasAction ? (
-                          <button
-                            onClick={() => setModalLoad(load)}
-                            className="h-8 px-3 text-xs font-medium rounded-lg bg-[#1E3A8A] text-white hover:bg-[#1e3a8a]/90 transition-colors flex items-center gap-1.5"
-                          >
-                            <Truck size={12} /> Update Status
-                          </button>
-                        ) : (
-                          <Link
-                            href={`/dashboard/transporter/track/${load.id}`}
-                            className="h-8 px-3 inline-flex items-center gap-1 text-xs text-[#1E3A8A] hover:underline"
-                          >
-                            View <ChevronRight size={12} />
-                          </Link>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <DataTable<Load>
+            columns={[
+              {
+                key: 'shortId',
+                header: 'Load ID',
+                render: (_, l) => (
+                  <span className="font-mono text-xs text-gray-500 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded">
+                    {l.shortId}
+                  </span>
+                ),
+              },
+              {
+                key: 'origin',
+                header: 'Route',
+                sortable: true,
+                render: (_, l) => (
+                  <span className="text-sm font-medium text-gray-900">
+                    {l.origin} <span className="text-gray-300 mx-0.5">→</span> {l.destination}
+                  </span>
+                ),
+              },
+              {
+                key: 'cargoType',
+                header: 'Cargo',
+                render: (_, l) => (
+                  <span className="text-sm text-gray-600">{l.cargoType} · {l.weight}t</span>
+                ),
+              },
+              {
+                key: 'shipperId',
+                header: 'Shipper',
+                render: (_, l) => (
+                  <span className="text-sm text-gray-600 max-w-[130px] truncate block">
+                    {l.shipper?.company || l.shipper?.name || '—'}
+                  </span>
+                ),
+              },
+              {
+                key: 'deliveryDate',
+                header: 'Due Date',
+                sortable: true,
+                render: (_, l) => (
+                  <span className="text-sm text-gray-600">{formatDate(l.deliveryDate)}</span>
+                ),
+              },
+              {
+                key: 'status',
+                header: 'Status',
+                sortable: true,
+                render: (_, l) => <LoadStatusBadge status={l.status} />,
+              },
+              {
+                key: 'id',
+                header: 'Actions',
+                render: (_, l) => {
+                  const hasAction = !!NEXT_STATUS[l.status as LoadStatus];
+                  return (
+                    <div className="flex items-center justify-end gap-2">
+                      {hasAction ? (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setModalLoad(l); }}
+                          className="h-8 px-3 text-xs font-medium rounded-lg bg-[#1E3A8A] text-white hover:bg-[#1e3a8a]/90 transition-colors flex items-center gap-1.5"
+                        >
+                          <Truck size={12} /> Update Status
+                        </button>
+                      ) : (
+                        <Link
+                          href={`/dashboard/transporter/track/${l.id}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="h-8 px-3 inline-flex items-center gap-1 text-xs text-[#1E3A8A] hover:underline"
+                        >
+                          View <ChevronRight size={12} />
+                        </Link>
+                      )}
+                    </div>
+                  );
+                },
+              },
+            ] as Column<Load>[]}
+            data={loads}
+            keyField="id"
+            onRowClick={(l) => router.push(`/dashboard/transporter/track/${l.id}`)}
+          />
         )}
       </div>
 

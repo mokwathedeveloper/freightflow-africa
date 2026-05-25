@@ -16,10 +16,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ success: false, error: 'Only POSTED loads can be cancelled' }, { status: 400 });
   }
 
-  await prisma.load.update({ where: { id }, data: { status: 'CANCELLED', cancelledAt: new Date() } });
-  await prisma.loadStatusLog.create({
-    data: { loadId: id, status: 'CANCELLED', changedBy: auth.user.userId, channel: 'WEB' },
-  });
+  await prisma.$transaction([
+    prisma.load.update({ where: { id }, data: { status: 'CANCELLED', cancelledAt: new Date() } }),
+    prisma.loadStatusLog.create({
+      data: { loadId: id, status: 'CANCELLED', changedBy: auth.user.userId, channel: 'WEB' },
+    }),
+  ]);
 
   return NextResponse.json({ success: true, message: 'Load cancelled' });
 }

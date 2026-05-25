@@ -11,8 +11,11 @@ export interface JWTPayload {
   exp?: number;
 }
 
-const ACCESS_SECRET = process.env.JWT_SECRET!;
-const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET!;
+if (!process.env.JWT_SECRET || !process.env.JWT_REFRESH_SECRET) {
+  throw new Error('JWT_SECRET and JWT_REFRESH_SECRET env vars must be set');
+}
+const ACCESS_SECRET = process.env.JWT_SECRET;
+const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
 
 export const signAccessToken = (payload: Omit<JWTPayload, 'iat' | 'exp'>): string =>
   jwt.sign(payload, ACCESS_SECRET, { expiresIn: '15m' });
@@ -20,20 +23,38 @@ export const signAccessToken = (payload: Omit<JWTPayload, 'iat' | 'exp'>): strin
 export const signRefreshToken = (payload: Omit<JWTPayload, 'iat' | 'exp'>): string =>
   jwt.sign(payload, REFRESH_SECRET, { expiresIn: '7d' });
 
-export const verifyAccessToken = (token: string): JWTPayload =>
-  jwt.verify(token, ACCESS_SECRET) as JWTPayload;
+function isJWTPayload(payload: unknown): payload is JWTPayload {
+  return (
+    typeof payload === 'object' &&
+    payload !== null &&
+    typeof (payload as JWTPayload).userId === 'string' &&
+    typeof (payload as JWTPayload).role === 'string' &&
+    typeof (payload as JWTPayload).tenantId === 'string'
+  );
+}
 
-export const verifyRefreshToken = (token: string): JWTPayload =>
-  jwt.verify(token, REFRESH_SECRET) as JWTPayload;
+export const verifyAccessToken = (token: string): JWTPayload => {
+  const payload = jwt.verify(token, ACCESS_SECRET);
+  if (!isJWTPayload(payload)) throw new Error('Invalid token payload');
+  return payload;
+};
+
+export const verifyRefreshToken = (token: string): JWTPayload => {
+  const payload = jwt.verify(token, REFRESH_SECRET);
+  if (!isJWTPayload(payload)) throw new Error('Invalid token payload');
+  return payload;
+};
 
 // Extract and verify JWT from an incoming API route request
 export const getAuthUser = (req: NextRequest): JWTPayload | null => {
   const authHeader = req.headers.get('authorization');
-  if (!authHeader?.startsWith('Bearer ')) return null;
+  if (!authHeader) return null;
 
-  const token = authHeader.split(' ')[1];
+  const parts = authHeader.split(' ');
+  if (parts.length !== 2 || parts[0] !== 'Bearer' || !parts[1]) return null;
+
   try {
-    return verifyAccessToken(token);
+    return verifyAccessToken(parts[1]);
   } catch {
     return null;
   }

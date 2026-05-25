@@ -9,6 +9,7 @@ import {
 import { cn } from '@/lib/utils';
 import api from '@/lib/api';
 import { useToastStore } from '@/store/toast.store';
+import FilterDropdown, { FilterOption } from '@/components/Filters/FilterDropdown';
 
 type Severity = 'Critical' | 'High' | 'Medium' | 'Low' | 'Info';
 type ReadState = 'read' | 'unread';
@@ -113,7 +114,7 @@ export default function AdminAlertsPage() {
   const addToast = useToastStore((s) => s.addToast);
   const [tab, setTab]                 = useState<Tab>('Alerts Centre');
   const [readFilter, setReadFilter]   = useState<'All' | 'Unread' | 'Read'>('All');
-  const [severity, setSeverity]       = useState('All Severity');
+  const [severity, setSeverity]       = useState('ALL');
   const [search, setSearch]           = useState('');
   const [selected, setSelected]       = useState<SystemAlert | null>(ALERTS[0]);
   const [alerts, setAlerts]           = useState(ALERTS);
@@ -122,9 +123,18 @@ export default function AdminAlertsPage() {
   const [broadcastMsg, setBroadcastMsg]     = useState('');
   const [targetRole, setTargetRole]         = useState<'ALL' | 'SHIPPER' | 'TRANSPORTER'>('ALL');
 
-  // Notification settings state
+  // Notification settings state (detail panel toggles)
   const [emailEnabled, setEmailEnabled]   = useState(true);
   const [smsEnabled, setSmsEnabled]       = useState(true);
+
+  // Notification Settings tab — global preferences
+  type SettingKey = 'emailCritical' | 'smsCritical' | 'emailDigest' | 'slack' | 'inApp';
+  const [notifSettings, setNotifSettings] = useState<Record<SettingKey, boolean>>({
+    emailCritical: true, smsCritical: true, emailDigest: true, slack: false, inApp: true,
+  });
+  function toggleSetting(key: SettingKey) {
+    setNotifSettings((prev) => ({ ...prev, [key]: !prev[key] }));
+  }
 
   const broadcastMut = useMutation({
     mutationFn: () => api.post('/admin/broadcast', { message: broadcastMsg, role: targetRole }),
@@ -135,9 +145,25 @@ export default function AdminAlertsPage() {
     onError: () => addToast('error', 'Failed to send alert'),
   });
 
+  const escalateMut = useMutation({
+    mutationFn: (alert: SystemAlert) =>
+      api.post('/admin/broadcast', { message: `[${alert.severity.toUpperCase()}] ${alert.title}`, role: 'ALL' }),
+    onSuccess: () => addToast('success', 'Alert escalated to all users via SMS'),
+    onError: () => addToast('error', 'Failed to escalate alert'),
+  });
+
+  const SEVERITY_OPTIONS: FilterOption[] = [
+    { label: 'All Severity', value: 'ALL' },
+    { label: 'Critical',     value: 'Critical' },
+    { label: 'High',         value: 'High' },
+    { label: 'Medium',       value: 'Medium' },
+    { label: 'Low',          value: 'Low' },
+    { label: 'Info',         value: 'Info' },
+  ];
+
   const filtered = alerts.filter((a) => {
     const matchRead     = readFilter === 'All' || (readFilter === 'Unread' ? !a.read : a.read);
-    const matchSeverity = severity === 'All Severity' || a.severity === severity;
+    const matchSeverity = severity === 'ALL' || a.severity === severity;
     const matchSearch   = !search || a.title.toLowerCase().includes(search.toLowerCase());
     return matchRead && matchSeverity && matchSearch;
   });
@@ -198,15 +224,12 @@ export default function AdminAlertsPage() {
                   {f}
                 </button>
               ))}
-              <select
-                value={severity}
-                onChange={(e) => setSeverity(e.target.value)}
-                className="ff-input h-8 text-xs w-auto pr-7"
-              >
-                {['All Severity', 'Critical', 'High', 'Medium', 'Low', 'Info'].map((s) => (
-                  <option key={s}>{s}</option>
-                ))}
-              </select>
+              <FilterDropdown
+                label="All Severity"
+                options={SEVERITY_OPTIONS}
+                selected={severity}
+                onChange={setSeverity}
+              />
               <div className="relative flex-1 max-w-xs">
                 <input
                   value={search}
@@ -339,8 +362,14 @@ export default function AdminAlertsPage() {
               </div>
 
               <div className="px-5 py-4 border-t border-gray-100">
-                <button className="w-full h-9 rounded-lg bg-[#16A34A] text-white text-sm font-medium flex items-center justify-center gap-2 hover:bg-green-700 transition-colors">
-                  <Send size={13} /> Send Alert
+                <button
+                  onClick={() => selected && escalateMut.mutate(selected)}
+                  disabled={escalateMut.isPending}
+                  className="w-full h-9 rounded-lg bg-[#16A34A] text-white text-sm font-medium flex items-center justify-center gap-2 hover:bg-green-700 disabled:opacity-60 transition-colors"
+                >
+                  {escalateMut.isPending
+                    ? <><Loader2 size={13} className="animate-spin" /> Sending...</>
+                    : <><Send size={13} /> Send Alert</>}
                 </button>
               </div>
             </div>
@@ -405,19 +434,24 @@ export default function AdminAlertsPage() {
         <div className="max-w-2xl space-y-4">
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 space-y-4">
             <h3 className="text-sm font-semibold text-gray-900">Global Notification Preferences</h3>
-            {[
-              { label: 'Email notifications for critical alerts',     key: 'emailCritical' },
-              { label: 'SMS notifications for critical alerts',       key: 'smsCritical' },
-              { label: 'Email digest for daily system summary',       key: 'emailDigest' },
-              { label: 'Slack notifications for high severity alerts', key: 'slack' },
-              { label: 'In-app notifications for all alerts',         key: 'inApp' },
-            ].map(({ label, key }) => (
+            {([
+              { label: 'Email notifications for critical alerts',     key: 'emailCritical' as SettingKey },
+              { label: 'SMS notifications for critical alerts',       key: 'smsCritical'   as SettingKey },
+              { label: 'Email digest for daily system summary',       key: 'emailDigest'   as SettingKey },
+              { label: 'Slack notifications for high severity alerts', key: 'slack'        as SettingKey },
+              { label: 'In-app notifications for all alerts',         key: 'inApp'         as SettingKey },
+            ]).map(({ label, key }) => (
               <div key={key} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
                 <span className="text-sm text-gray-700">{label}</span>
                 <button
-                  className="relative inline-flex h-5 w-9 rounded-full bg-[#1E3A8A] transition-colors"
+                  onClick={() => toggleSetting(key)}
+                  className="relative inline-flex h-5 w-9 rounded-full transition-colors"
+                  style={{ backgroundColor: notifSettings[key] ? '#1E3A8A' : '#D1D5DB' }}
                 >
-                  <span className="inline-block h-4 w-4 transform rounded-full bg-white shadow mt-0.5 ml-0.5 translate-x-4" />
+                  <span
+                    className="inline-block h-4 w-4 transform rounded-full bg-white shadow mt-0.5 ml-0.5 transition-transform"
+                    style={{ transform: notifSettings[key] ? 'translateX(16px)' : 'translateX(0)' }}
+                  />
                 </button>
               </div>
             ))}

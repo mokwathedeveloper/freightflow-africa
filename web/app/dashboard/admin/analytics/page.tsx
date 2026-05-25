@@ -8,6 +8,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
 import api from '@/lib/api';
+import FilterDropdown, { FilterOption } from '@/components/Filters/FilterDropdown';
 
 interface Analytics {
   data: {
@@ -56,8 +57,20 @@ const USER_ACTIVITY_DATA = [
   { date: 'May 16', users: 2458 },
 ];
 
-const USER_TYPES   = ['All User Types', 'Shipper', 'Transporter', 'Admin'];
-const REGIONS      = ['All Regions', 'East Africa', 'West Africa', 'North Africa', 'South Africa', 'Central Africa'];
+const USER_TYPE_OPTIONS: FilterOption[] = [
+  { label: 'All User Types', value: 'ALL' },
+  { label: 'Shipper',        value: 'SHIPPER' },
+  { label: 'Transporter',    value: 'TRANSPORTER' },
+  { label: 'Admin',          value: 'ADMIN' },
+];
+const REGION_OPTIONS: FilterOption[] = [
+  { label: 'All Regions',    value: 'ALL' },
+  { label: 'East Africa',    value: 'East Africa' },
+  { label: 'West Africa',    value: 'West Africa' },
+  { label: 'North Africa',   value: 'North Africa' },
+  { label: 'South Africa',   value: 'South Africa' },
+  { label: 'Central Africa', value: 'Central Africa' },
+];
 
 function KpiCard({ label, value, trend, trendUp, icon: Icon, iconBg, iconColor, sub }: {
   label: string; value: string; trend: string; trendUp: boolean; sub?: string;
@@ -81,14 +94,20 @@ function KpiCard({ label, value, trend, trendUp, icon: Icon, iconBg, iconColor, 
 }
 
 export default function AdminAnalyticsPage() {
-  const [dateFrom, setDateFrom] = useState('2024-05-10');
-  const [dateTo, setDateTo]     = useState('2024-05-16');
-  const [userType, setUserType] = useState('All User Types');
-  const [region, setRegion]     = useState('All Regions');
+  const today = new Date().toISOString().split('T')[0];
+  const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
+
+  const [dateFrom, setDateFrom] = useState(weekAgo);
+  const [dateTo, setDateTo]     = useState(today);
+  const [userType, setUserType] = useState('ALL');
+  const [region, setRegion]     = useState('ALL');
+  const [applied, setApplied]   = useState({ dateFrom: weekAgo, dateTo: today, userType: 'ALL', region: 'ALL' });
 
   const { data, isLoading } = useQuery<Analytics>({
-    queryKey: ['admin-analytics'],
-    queryFn: () => api.get('/admin/analytics').then((r) => r.data),
+    queryKey: ['admin-analytics', applied.dateFrom, applied.dateTo, applied.userType, applied.region],
+    queryFn: () => api.get('/admin/analytics', {
+      params: { dateFrom: applied.dateFrom, dateTo: applied.dateTo, userType: applied.userType, region: applied.region },
+    }).then((r) => r.data),
   });
 
   const stats = data?.data;
@@ -129,24 +148,32 @@ export default function AdminAnalyticsPage() {
             className="ff-input h-8 text-xs w-auto"
           />
         </div>
-        <select
-          value={userType}
-          onChange={(e) => setUserType(e.target.value)}
-          className="ff-input h-8 text-xs w-auto pr-7"
+        <FilterDropdown
+          label="All User Types"
+          options={USER_TYPE_OPTIONS}
+          selected={userType}
+          onChange={setUserType}
+        />
+        <FilterDropdown
+          label="All Regions"
+          options={REGION_OPTIONS}
+          selected={region}
+          onChange={setRegion}
+        />
+        <button
+          onClick={() => setApplied({ dateFrom, dateTo, userType, region })}
+          className="h-8 px-4 rounded-lg bg-[#16A34A] text-white text-xs font-medium hover:bg-green-700 transition-colors"
         >
-          {USER_TYPES.map((t) => <option key={t}>{t}</option>)}
-        </select>
-        <select
-          value={region}
-          onChange={(e) => setRegion(e.target.value)}
-          className="ff-input h-8 text-xs w-auto pr-7"
-        >
-          {REGIONS.map((r) => <option key={r}>{r}</option>)}
-        </select>
-        <button className="h-8 px-4 rounded-lg bg-[#16A34A] text-white text-xs font-medium hover:bg-green-700 transition-colors">
           Apply
         </button>
-        <button className="h-8 px-4 rounded-lg border border-gray-200 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+        <button
+          onClick={() => {
+            setDateFrom(weekAgo); setDateTo(today);
+            setUserType('ALL'); setRegion('ALL');
+            setApplied({ dateFrom: weekAgo, dateTo: today, userType: 'ALL', region: 'ALL' });
+          }}
+          className="h-8 px-4 rounded-lg border border-gray-200 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+        >
           Reset
         </button>
       </div>

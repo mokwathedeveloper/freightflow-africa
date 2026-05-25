@@ -29,7 +29,7 @@ export default function GlobalError({
         <p className="text-7xl font-black text-gray-200 mb-3 leading-none">500</p>
         <h1 className="text-xl font-bold text-gray-900 mb-2">Something went wrong</h1>
         <p className="text-sm text-gray-500 mb-7 leading-relaxed">
-          Our team has been notified. Please try again in a moment.
+          An unexpected error occurred. Please try again in a moment.
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <button

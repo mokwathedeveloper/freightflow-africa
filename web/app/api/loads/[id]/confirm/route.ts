@@ -27,32 +27,35 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return NextResponse.json({ success: false, error: 'Load not found or not awaiting confirmation' }, { status: 404 });
     }
 
-    await prisma.load.update({
-      where: { id },
-      data: { status: 'DELIVERED', confirmedAt: new Date(), rating, ratingNote },
-    });
-
-    await prisma.loadStatusLog.create({
-      data: { loadId: id, status: 'DELIVERED', changedBy: auth.user.userId, channel: 'WEB' },
-    });
-
-    if (load.transporter) {
-      const newCount = load.transporter.ratingCount + 1;
-      const newRating = (load.transporter.rating * load.transporter.ratingCount + rating) / newCount;
-
-      await prisma.user.update({
-        where: { id: load.transporter.id },
-        data: { rating: newRating, ratingCount: newCount },
+    await prisma.$transaction(async (tx) => {
+      await tx.load.update({
+        where: { id },
+        data: { status: 'DELIVERED', confirmedAt: new Date(), rating, ratingNote },
       });
+      await tx.loadStatusLog.create({
+        data: { loadId: id, status: 'DELIVERED', changedBy: auth.user.userId, channel: 'WEB' },
+      });
+      if (load.transporter) {
+        const newCount = load.transporter.ratingCount + 1;
+        const newRating = (load.transporter.rating * load.transporter.ratingCount + rating) / newCount;
+        await tx.user.update({
+          where: { id: load.transporter.id },
+          data: { rating: newRating, ratingCount: newCount },
+        });
+      }
+    });
 
-      await sendSMS(load.transporter.phone, 'DELIVERY_CONFIRMED', { loadShortId: load.shortId }, id);
-      await sendSMS(load.shipper.phone, 'DELIVERY_CONFIRMED', { loadShortId: load.shortId }, id);
-
-      // Airtime reward for rating >= 4 (non-blocking)
+    const smsTasks: Promise<unknown>[] = [
+      sendSMS(load.shipper.phone, 'DELIVERY_CONFIRMED', { loadShortId: load.shortId }, id),
+    ];
+    if (load.transporter) {
+      smsTasks.push(sendSMS(load.transporter.phone, 'DELIVERY_CONFIRMED', { loadShortId: load.shortId }, id));
       if (rating >= 4) {
-        disburseAirtimeReward(load.transporter.id, load.transporter.phone, id);
+        disburseAirtimeReward(load.transporter.id, load.transporter.phone, id)
+          .catch((err) => console.error('[confirm-airtime]', err));
       }
     }
+    Promise.allSettled(smsTasks).catch((err) => console.error('[confirm-sms]', err));
 
     return NextResponse.json({ success: true, message: 'Delivery confirmed successfully' });
   } catch (err) {

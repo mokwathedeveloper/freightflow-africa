@@ -45,8 +45,11 @@ export const sendSMS = async (
       where: { id: log.id },
       data: { status: r?.status === 'Success' ? 'SENT' : 'FAILED', atMessageId: r?.messageId },
     });
-  } catch {
-    await prisma.smsLog.update({ where: { id: log.id }, data: { status: 'FAILED', retryCount: 1 } });
-    // Non-blocking — status update already saved; SMS failure does not block the user action
+  } catch (err) {
+    console.error('[sms-send]', err);
+    await prisma.smsLog.update({
+      where: { id: log.id },
+      data: { status: 'FAILED', retryCount: { increment: 1 } },
+    });
   }
 };

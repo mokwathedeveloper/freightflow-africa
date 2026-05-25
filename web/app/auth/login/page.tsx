@@ -41,7 +41,8 @@ export default function LoginPage() {
         user: User; accessToken: string; refreshToken: string;
       };
       setAuth(user, accessToken, refreshToken);
-      addToast('success', `Welcome back, ${user.name.split(' ')[0]}!`);
+      const firstName = user?.name?.split(' ')[0] || 'User';
+      addToast('success', `Welcome back, ${firstName}!`);
       router.replace(`/dashboard/${user.role.toLowerCase()}`);
     } catch (err: unknown) {
       const msg =

@@ -20,8 +20,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Invalid plan' }, { status: 400 });
     }
 
-    const endDate = new Date();
-    endDate.setMonth(endDate.getMonth() + 1);
+    const now = new Date();
+    const nextMonthLastDay = new Date(now.getFullYear(), now.getMonth() + 2, 0).getDate();
+    const endDate = new Date(now.getFullYear(), now.getMonth() + 1, Math.min(now.getDate(), nextMonthLastDay));
 
     await prisma.subscription.upsert({
       where:  { tenantId: auth.user.tenantId },

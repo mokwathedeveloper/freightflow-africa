@@ -152,9 +152,9 @@ const COOKIE_SECTIONS: Section[] = [
 
 // ─── Tab config ───────────────────────────────────────────────────────────────
 const TABS = [
-  { key: 'terms',   label: 'Terms of Service', icon: FileText, sections: TERMS_SECTIONS,   updated: '1 January 2026' },
-  { key: 'privacy', label: 'Privacy Policy',   icon: Lock,     sections: PRIVACY_SECTIONS, updated: '1 January 2026' },
-  { key: 'cookies', label: 'Cookie Policy',    icon: Cookie,   sections: COOKIE_SECTIONS,  updated: '1 January 2026' },
+  { key: 'terms',   label: 'Terms of Service', icon: FileText, sections: TERMS_SECTIONS,   updated: '1 May 2026' },
+  { key: 'privacy', label: 'Privacy Policy',   icon: Lock,     sections: PRIVACY_SECTIONS, updated: '1 May 2026' },
+  { key: 'cookies', label: 'Cookie Policy',    icon: Cookie,   sections: COOKIE_SECTIONS,  updated: '1 May 2026' },
 ] as const;
 
 type TabKey = typeof TABS[number]['key'];

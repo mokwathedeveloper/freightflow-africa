@@ -10,6 +10,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useAuthStore } from '@/store/auth.store';
 import { cn } from '@/lib/utils';
+import NotificationsDrawer from '@/components/Notifications/NotificationsDrawer';
 
 const NAV = [
   { href: '/dashboard/admin',               label: 'Dashboard',            icon: LayoutDashboard },
@@ -18,7 +19,7 @@ const NAV = [
   { href: '/dashboard/admin/analytics',     label: 'Analytics',            icon: BarChart2 },
   { href: '/dashboard/admin/subscriptions', label: 'Subscriptions',        icon: CreditCard },
   { href: '/dashboard/admin/alerts',        label: 'Alerts & Notifications', icon: Bell },
-  { href: '/dashboard/admin/disputes',      label: 'Settings',             icon: Settings },
+  { href: '/dashboard/admin/settings',      label: 'Settings',             icon: Settings },
   { href: '/dashboard/admin/disputes',      label: 'Audit Logs',           icon: FileText },
 ];
 
@@ -55,11 +56,7 @@ function AdminSidebar({ onClose }: { onClose?: () => void }) {
       {/* Nav */}
       <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
         {NAV.map(({ href, label, icon: Icon }, idx) => {
-          const active = label === 'Dashboard'
-            ? pathname === href
-            : label === 'Settings' || label === 'Audit Logs'
-              ? false
-              : pathname.startsWith(href);
+          const active = label === 'Dashboard' ? pathname === href : pathname.startsWith(href);
           return (
             <Link
               key={`${href}-${idx}`}
@@ -103,8 +100,8 @@ function AdminSidebar({ onClose }: { onClose?: () => void }) {
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth('ADMIN');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [sidebarOpen,   setSidebarOpen]   = useState(false);
+  const [notifOpen,     setNotifOpen]     = useState(false);
 
   if (!isAuthenticated) return null;
 
@@ -137,8 +134,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="relative flex-1 max-w-md">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search anything..."
               className="w-full h-9 pl-9 pr-4 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#1E3A8A]/30 focus:border-[#1E3A8A]/40 transition-colors"
             />
@@ -146,7 +141,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
           <div className="flex items-center gap-3 ml-auto">
             {/* Notifications bell */}
-            <button className="relative w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors">
+            <button
+              onClick={() => setNotifOpen(true)}
+              className="relative w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors"
+              aria-label="Open notifications"
+            >
               <Bell size={16} />
               <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-red-500" />
             </button>
@@ -166,6 +165,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         <main className="flex-1 overflow-y-auto p-6">{children}</main>
       </div>
+
+      <NotificationsDrawer isOpen={notifOpen} onClose={() => setNotifOpen(false)} />
     </div>
   );
 }

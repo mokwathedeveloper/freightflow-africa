@@ -21,6 +21,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return NextResponse.json({ success: false, error: 'Load not found' }, { status: 404 });
     }
 
+    if (['POSTED', 'CANCELLED', 'DISPUTED'].includes(load.status)) {
+      return NextResponse.json({ success: false, error: 'Cannot raise dispute for this load status' }, { status: 409 });
+    }
+
     await prisma.$transaction([
       prisma.load.update({ where: { id }, data: { status: 'DISPUTED' } }),
       prisma.loadStatusLog.create({

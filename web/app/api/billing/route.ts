@@ -38,7 +38,8 @@ export async function GET(req: NextRequest) {
         history: [],
       },
     });
-  } catch {
+  } catch (err) {
+    console.error('[billing]', err);
     return NextResponse.json({ success: false, error: 'Failed to fetch billing info' }, { status: 500 });
   }
 }

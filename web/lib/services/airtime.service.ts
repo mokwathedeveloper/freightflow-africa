@@ -18,17 +18,28 @@ export const disburseAirtimeReward = async (
         recipients: [{ phoneNumber: phone, amount: `KES ${REWARD}` }],
       });
       const r = res.responses?.[0];
-      const success = r?.status === 'Success';
 
+      if (r?.status === 'Success') {
+        await prisma.airtimeLog.update({
+          where: { id: log.id },
+          data: { status: 'SUCCESS', atResponse: JSON.stringify(r), retryCount: attempt - 1 },
+        });
+        return;
+      }
+
+      // Definitive failure — do not retry
       await prisma.airtimeLog.update({
         where: { id: log.id },
-        data: { status: success ? 'SUCCESS' : 'FAILED', atResponse: JSON.stringify(r), retryCount: attempt - 1 },
+        data: { status: 'FAILED', atResponse: JSON.stringify(r), retryCount: attempt - 1 },
       });
-
-      if (success) return;
-    } catch {
+      return;
+    } catch (err) {
+      console.error(`[airtime] attempt ${attempt} failed`, err);
       if (attempt === 3) {
-        await prisma.airtimeLog.update({ where: { id: log.id }, data: { status: 'FAILED', retryCount: 3 } });
+        await prisma.airtimeLog.update({ where: { id: log.id }, data: { status: 'FAILED', retryCount: attempt } });
+      } else {
+        // Exponential backoff: 500ms, 1000ms
+        await new Promise((r) => setTimeout(r, 500 * attempt));
       }
     }
   }

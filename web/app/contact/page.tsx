@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Mail, Phone, MessageCircle, MapPin, Send, Loader2, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import api from '@/lib/api';
 import PublicNavbar from '@/components/layout/PublicNavbar';
 import PublicFooter from '@/components/layout/PublicFooter';
 
@@ -71,10 +72,14 @@ export default function ContactPage() {
     e.preventDefault();
     if (!validate()) return;
     setLoading(true);
-    // Simulate sending
-    await new Promise((r) => setTimeout(r, 1200));
-    setLoading(false);
-    setSent(true);
+    try {
+      await api.post('/contact', form);
+      setSent(true);
+    } catch {
+      setErrors({ message: 'Failed to send message. Please try again.' });
+    } finally {
+      setLoading(false);
+    }
   }
 
   function field(key: keyof typeof form, value: string) {

@@ -26,7 +26,8 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ success: true, message: `Broadcast sent to ${users.length} users` });
-  } catch {
+  } catch (err) {
+    console.error('[broadcast] Broadcast failed', err);
     return NextResponse.json({ success: false, error: 'Broadcast failed' }, { status: 500 });
   }
 }

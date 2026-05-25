@@ -15,7 +15,7 @@ export function useAuth(requiredRole?: UserRole) {
       return;
     }
     if (requiredRole && user?.role !== requiredRole) {
-      router.replace(`/dashboard/${user?.role.toLowerCase()}`);
+      router.replace(`/dashboard/${user?.role?.toLowerCase()}`);
     }
   }, [isAuthenticated, user, requiredRole, router]);
 

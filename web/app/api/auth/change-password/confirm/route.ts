@@ -17,6 +17,12 @@ export async function POST(req: NextRequest) {
     if (newPassword.length < 8) {
       return NextResponse.json({ success: false, error: 'Password must be at least 8 characters' }, { status: 400 });
     }
+    if (!/[A-Z]/.test(newPassword)) {
+      return NextResponse.json({ success: false, error: 'Password must contain at least one uppercase letter' }, { status: 400 });
+    }
+    if (!/[0-9]/.test(newPassword)) {
+      return NextResponse.json({ success: false, error: 'Password must contain at least one number' }, { status: 400 });
+    }
 
     const user = await prisma.user.findUnique({ where: { id: auth.user.userId } });
     if (!user) return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });

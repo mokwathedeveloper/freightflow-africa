@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import {
   Briefcase, CheckCircle, Star, Search,
-  ChevronRight, TrendingUp, Truck,
+  ChevronRight, TrendingUp, Truck, Zap,
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -16,6 +16,7 @@ import { useAuthStore } from '@/store/auth.store';
 import api from '@/lib/api';
 import { formatDate } from '@/lib/utils';
 import type { Load } from '@/types';
+import DataTable, { Column } from '@/components/Table/DataTable';
 
 interface MyLoadsResponse {
   data: { loads: Load[]; total: number };
@@ -51,19 +52,20 @@ function KpiCard({
 function buildChartData(loads: Load[]) {
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const now = new Date();
-  const buckets: Record<string, number> = {};
+  const buckets: Record<string, { label: string; jobs: number }> = {};
   for (let i = 5; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    buckets[`${months[d.getMonth()]}`] = 0;
+    const key = `${d.getFullYear()}-${d.getMonth()}`;
+    buckets[key] = { label: months[d.getMonth()], jobs: 0 };
   }
   loads
     .filter((l) => l.status === 'DELIVERED')
     .forEach((l) => {
-      const d = new Date(l.createdAt);
-      const key = months[d.getMonth()];
-      if (key in buckets) buckets[key]++;
+      const d = new Date(l.confirmedAt ?? l.deliveredAt ?? l.createdAt);
+      const key = `${d.getFullYear()}-${d.getMonth()}`;
+      if (key in buckets) buckets[key].jobs++;
     });
-  return Object.entries(buckets).map(([month, jobs]) => ({ month, jobs }));
+  return Object.values(buckets).map(({ label, jobs }) => ({ month: label, jobs }));
 }
 
 export default function TransporterPage() {
@@ -89,7 +91,7 @@ export default function TransporterPage() {
       {/* Welcome banner */}
       <div className="bg-[#1E3A8A] rounded-xl p-6 text-white flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold">Welcome back, {user?.name.split(' ')[0]}</h2>
+          <h2 className="text-xl font-bold">Welcome back, {user?.name?.split(' ')[0] ?? 'there'}</h2>
           <p className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.75)' }}>
             {user?.vehicleType ?? 'Transporter'} · {user?.numberPlate ?? 'Registered'}
           </p>
@@ -168,6 +170,42 @@ export default function TransporterPage() {
         </div>
       </div>
 
+      {/* Airtime Rewards Tracker — unique AT API differentiator */}
+      <div className="bg-gradient-to-br from-[#1E3A8A] to-[#1e40af] rounded-xl p-5 text-white">
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <Zap size={14} className="text-amber-300" />
+              <p className="text-xs font-bold text-white/80 uppercase tracking-widest">Airtime Rewards</p>
+            </div>
+            <p className="text-2xl font-black">
+              KES {(user?.rating ?? 0) >= 4 ? (delivered * 20).toLocaleString() : '0'}
+            </p>
+            <p className="text-sm text-white/70 mt-0.5">Earned for on-time deliveries (rated ≥ 4★)</p>
+          </div>
+          <div className="text-right">
+            <p className="text-xs text-white/60 mb-1">Next reward</p>
+            <div className="bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-center">
+              <p className="text-base font-bold">+KES 20</p>
+              <p className="text-xs text-white/60 mt-0.5">per delivery</p>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 text-xs text-white/60">
+          <div className="flex items-center gap-1.5">
+            <CheckCircle size={12} className="text-green-300" />
+            <span>{delivered} deliveries completed</span>
+          </div>
+          <div className="w-1 h-1 rounded-full bg-white/30" />
+          <div className="flex items-center gap-1.5">
+            <Star size={12} className="text-amber-300" />
+            <span>Rating: {rating} ({ratingCount} reviews)</span>
+          </div>
+          <div className="w-1 h-1 rounded-full bg-white/30" />
+          <span>Via Africa&apos;s Talking Airtime API</span>
+        </div>
+      </div>
+
       {/* Recent Jobs Table */}
       <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
@@ -197,34 +235,49 @@ export default function TransporterPage() {
             </Link>
           </div>
         ) : (
-          <table className="w-full data-table">
-            <thead>
-              <tr>
-                <th>Load ID</th>
-                <th>Route</th>
-                <th>Cargo</th>
-                <th>Due Date</th>
-                <th>Status</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {recent.map((load) => (
-                <tr
-                  key={load.id}
-                  className="hover:bg-gray-50 cursor-pointer"
-                  onClick={() => window.location.href = `/dashboard/transporter/track/${load.id}`}
-                >
-                  <td className="font-mono text-xs text-gray-500">{load.shortId}</td>
-                  <td className="font-medium">{load.origin} → {load.destination}</td>
-                  <td className="text-gray-500">{load.cargoType}</td>
-                  <td className="text-gray-500">{formatDate(load.deliveryDate)}</td>
-                  <td><LoadStatusBadge status={load.status} /></td>
-                  <td><ChevronRight size={14} className="text-gray-400" /></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <DataTable<Load>
+            columns={[
+              {
+                key: 'shortId',
+                header: 'Load ID',
+                render: (_, l) => (
+                  <span className="font-mono text-xs text-gray-500">{l.shortId}</span>
+                ),
+              },
+              {
+                key: 'origin',
+                header: 'Route',
+                render: (_, l) => (
+                  <span className="text-sm font-medium text-gray-800">{l.origin} → {l.destination}</span>
+                ),
+              },
+              {
+                key: 'cargoType',
+                header: 'Cargo',
+                render: (_, l) => <span className="text-sm text-gray-500">{l.cargoType}</span>,
+              },
+              {
+                key: 'deliveryDate',
+                header: 'Due Date',
+                render: (_, l) => (
+                  <span className="text-sm text-gray-500">{formatDate(l.deliveryDate)}</span>
+                ),
+              },
+              {
+                key: 'status',
+                header: 'Status',
+                render: (_, l) => <LoadStatusBadge status={l.status} />,
+              },
+              {
+                key: 'id',
+                header: '',
+                render: () => <ChevronRight size={14} className="text-gray-400" />,
+              },
+            ] as Column<Load>[]}
+            data={recent}
+            keyField="id"
+            onRowClick={(l) => { window.location.href = `/dashboard/transporter/track/${l.id}`; }}
+          />
         )}
       </div>
     </div>

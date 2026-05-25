@@ -6,18 +6,33 @@ import { Package, Search, Download, Plus, ChevronLeft, ChevronRight as ChevronRi
 import { formatDate, cn } from '@/lib/utils';
 import api from '@/lib/api';
 import type { Load, LoadStatus } from '@/types';
+import DataTable, { Column } from '@/components/Table/DataTable';
+import FilterDropdown, { FilterOption } from '@/components/Filters/FilterDropdown';
 
 interface LoadsResponse {
   data: { loads: Load[]; total: number };
 }
 
-const STATUS_OPTIONS: string[] = [
-  'All Statuses', 'POSTED', 'ACCEPTED', 'PICKED_UP', 'IN_TRANSIT',
-  'AWAITING_CONFIRMATION', 'DELIVERED', 'DISPUTED', 'CANCELLED',
+const STATUS_OPTIONS: FilterOption[] = [
+  { label: 'All Statuses',   value: 'ALL' },
+  { label: 'Posted',         value: 'POSTED' },
+  { label: 'Accepted',       value: 'ACCEPTED' },
+  { label: 'Picked Up',      value: 'PICKED_UP' },
+  { label: 'In Transit',     value: 'IN_TRANSIT' },
+  { label: 'Awaiting',       value: 'AWAITING_CONFIRMATION' },
+  { label: 'Delivered',      value: 'DELIVERED' },
+  { label: 'Disputed',       value: 'DISPUTED' },
+  { label: 'Cancelled',      value: 'CANCELLED' },
 ];
-const CARGO_TYPE_OPTIONS: string[] = [
-  'All Cargo Types', 'Electronics', 'Furniture', 'Food & Beverage',
-  'Machinery', 'Steel Products', 'Fresh Produce', 'Automotive Parts',
+const CARGO_TYPE_OPTIONS: FilterOption[] = [
+  { label: 'All Cargo Types',    value: 'ALL' },
+  { label: 'Electronics',        value: 'Electronics' },
+  { label: 'Furniture',          value: 'Furniture' },
+  { label: 'Food & Beverage',    value: 'Food & Beverage' },
+  { label: 'Machinery',          value: 'Machinery' },
+  { label: 'Steel Products',     value: 'Steel Products' },
+  { label: 'Fresh Produce',      value: 'Fresh Produce' },
+  { label: 'Automotive Parts',   value: 'Automotive Parts' },
 ];
 
 // Design-system-matched status badges
@@ -69,8 +84,8 @@ const PAGE_SIZE = 10;
 
 export default function AdminLoadsPage() {
   const [search,    setSearch]    = useState('');
-  const [status,    setStatus]    = useState('All Statuses');
-  const [cargoType, setCargoType] = useState('All Cargo Types');
+  const [status,    setStatus]    = useState('ALL');
+  const [cargoType, setCargoType] = useState('ALL');
   const [page,      setPage]      = useState(1);
 
   const { data, isLoading } = useQuery<LoadsResponse>({
@@ -81,8 +96,8 @@ export default function AdminLoadsPage() {
   const allLoads = data?.data.loads ?? [];
 
   const filtered = allLoads.filter((l) => {
-    const matchStatus = status === 'All Statuses' || l.status === status;
-    const matchCargo  = cargoType === 'All Cargo Types' || l.cargoType === cargoType;
+    const matchStatus = status === 'ALL' || l.status === status;
+    const matchCargo  = cargoType === 'ALL' || l.cargoType === cargoType;
     const matchSearch = !search ||
       l.shortId.toLowerCase().includes(search.toLowerCase()) ||
       l.origin.toLowerCase().includes(search.toLowerCase()) ||
@@ -126,27 +141,18 @@ export default function AdminLoadsPage() {
           />
         </div>
 
-        {/* Status */}
-        <select
-          value={status}
-          onChange={(e) => { setStatus(e.target.value); setPage(1); }}
-          className="ff-input h-8 text-xs w-auto"
-        >
-          {STATUS_OPTIONS.map((s) => (
-            <option key={s} value={s}>
-              {s === 'All Statuses' ? 'All Statuses' : statusLabel(s)}
-            </option>
-          ))}
-        </select>
-
-        {/* Cargo Type */}
-        <select
-          value={cargoType}
-          onChange={(e) => { setCargoType(e.target.value); setPage(1); }}
-          className="ff-input h-8 text-xs w-auto"
-        >
-          {CARGO_TYPE_OPTIONS.map((c) => <option key={c}>{c}</option>)}
-        </select>
+        <FilterDropdown
+          label="All Statuses"
+          options={STATUS_OPTIONS}
+          selected={status}
+          onChange={(v) => { setStatus(v); setPage(1); }}
+        />
+        <FilterDropdown
+          label="All Cargo Types"
+          options={CARGO_TYPE_OPTIONS}
+          selected={cargoType}
+          onChange={(v) => { setCargoType(v); setPage(1); }}
+        />
 
         {/* Date range (static display) */}
         <div className="flex items-center gap-1.5 text-xs text-gray-500 border border-gray-200 rounded-lg px-3 h-8 bg-white">
@@ -158,129 +164,101 @@ export default function AdminLoadsPage() {
 
       {/* ── Table ────────────────────────────────────────────── */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        {isLoading ? (
-          <div className="divide-y divide-gray-100">
-            {[...Array(8)].map((_, i) => (
-              <div key={i} className="px-5 py-4 flex items-center gap-4 animate-pulse">
-                <div className="h-3 bg-gray-100 rounded w-24 shrink-0" />
-                <div className="w-7 h-7 bg-gray-100 rounded-full shrink-0" />
-                <div className="h-3 bg-gray-100 rounded flex-1" />
-                <div className="h-3 bg-gray-100 rounded w-28" />
-                <div className="h-5 bg-gray-100 rounded w-20" />
-                <div className="w-7 h-7 bg-gray-100 rounded-full shrink-0" />
-              </div>
-            ))}
-          </div>
-        ) : paged.length === 0 ? (
-          <div className="py-16 text-center">
-            <Package className="mx-auto text-gray-300 mb-3" size={32} />
-            <p className="text-sm font-medium text-gray-500">No loads found</p>
-            <p className="text-xs text-gray-400 mt-1">Try adjusting the search or filters.</p>
-          </div>
-        ) : (
-          <table className="w-full data-table">
-            <thead>
-              <tr>
-                <th>Load ID</th>
-                <th>Shipper</th>
-                <th>Route</th>
-                <th>Cargo Type</th>
-                <th>Date Range</th>
-                <th>Status</th>
-                <th>Assigned Transporter</th>
-                <th className="text-right pr-5">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paged.map((l) => {
-                const shipperName = l.shipper?.company || l.shipper?.name || 'Unknown';
-                const ini = initials(shipperName);
-                const shipperAv = avatarClass(shipperName);
-
-                const transporterName = l.transporter?.name;
-                const transAv = transporterName ? avatarClass(transporterName) : '';
-                const transIni = transporterName ? initials(transporterName) : '';
-
+        <DataTable<Load>
+          keyField="id"
+          loading={isLoading}
+          data={paged}
+          emptyMessage="No loads found. Try adjusting the search or filters."
+          columns={[
+            {
+              key: 'shortId',
+              header: 'Load ID',
+              render: (_, l) => (
+                <span className="font-mono text-xs font-medium text-gray-800 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded">
+                  {l.shortId}
+                </span>
+              ),
+            },
+            {
+              key: 'shipperId',
+              header: 'Shipper',
+              render: (_, l) => {
+                const name = l.shipper?.company || l.shipper?.name || 'Unknown';
                 return (
-                  <tr key={l.id} className="hover:bg-gray-50/60">
-                    {/* Load ID */}
-                    <td>
-                      <span className="font-mono text-xs font-medium text-gray-800 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded">
-                        {l.shortId}
-                      </span>
-                    </td>
-
-                    {/* Shipper with colored avatar */}
-                    <td>
-                      <div className="flex items-center gap-2.5">
-                        <div className={cn('w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0', shipperAv)}>
-                          {ini}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-xs font-semibold text-gray-900 truncate max-w-[110px]">
-                            {shipperName}
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* Route — stacked origin / destination */}
-                    <td>
-                      <p className="text-xs font-medium text-gray-900">{l.origin}</p>
-                      <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
-                        → {l.destination}
-                      </p>
-                    </td>
-
-                    {/* Cargo Type */}
-                    <td>
-                      <span className="text-xs text-gray-600">{l.cargoType}</span>
-                    </td>
-
-                    {/* Date range */}
-                    <td>
-                      <p className="text-xs text-gray-600">{formatDate(l.createdAt)}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">→ {formatDate(l.deliveryDate)}</p>
-                    </td>
-
-                    {/* Status badge */}
-                    <td>
-                      <span className={cn(
-                        'inline-flex text-xs font-medium px-2 py-0.5 rounded-full border',
-                        statusBadge(l.status)
-                      )}>
-                        {statusLabel(l.status)}
-                      </span>
-                    </td>
-
-                    {/* Assigned Transporter */}
-                    <td>
-                      {transporterName ? (
-                        <div className="flex items-center gap-2">
-                          <div className={cn('w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0', transAv)}>
-                            {transIni}
-                          </div>
-                          <p className="text-xs font-medium text-gray-900 truncate max-w-[100px]">
-                            {transporterName}
-                          </p>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-gray-400 italic">Unassigned</span>
-                      )}
-                    </td>
-
-                    {/* Actions */}
-                    <td className="text-right pr-2">
-                      <button className="h-7 px-3 text-xs font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-colors">
-                        Edit
-                      </button>
-                    </td>
-                  </tr>
+                  <div className="flex items-center gap-2.5">
+                    <div className={cn('w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0', avatarClass(name))}>
+                      {initials(name)}
+                    </div>
+                    <p className="text-xs font-semibold text-gray-900 truncate max-w-[110px]">{name}</p>
+                  </div>
                 );
-              })}
-            </tbody>
-          </table>
-        )}
+              },
+            },
+            {
+              key: 'origin',
+              header: 'Route',
+              sortable: true,
+              render: (_, l) => (
+                <>
+                  <p className="text-xs font-medium text-gray-900">{l.origin}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">→ {l.destination}</p>
+                </>
+              ),
+            },
+            {
+              key: 'cargoType',
+              header: 'Cargo Type',
+              sortable: true,
+              render: (_, l) => <span className="text-xs text-gray-600">{l.cargoType}</span>,
+            },
+            {
+              key: 'deliveryDate',
+              header: 'Date Range',
+              sortable: true,
+              render: (_, l) => (
+                <>
+                  <p className="text-xs text-gray-600">{formatDate(l.createdAt)}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">→ {formatDate(l.deliveryDate)}</p>
+                </>
+              ),
+            },
+            {
+              key: 'status',
+              header: 'Status',
+              sortable: true,
+              render: (_, l) => (
+                <span className={cn('inline-flex text-xs font-medium px-2 py-0.5 rounded-full border', statusBadge(l.status))}>
+                  {statusLabel(l.status)}
+                </span>
+              ),
+            },
+            {
+              key: 'transporterId',
+              header: 'Transporter',
+              render: (_, l) => {
+                const name = l.transporter?.name;
+                if (!name) return <span className="text-xs text-gray-400 italic">Unassigned</span>;
+                return (
+                  <div className="flex items-center gap-2">
+                    <div className={cn('w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0', avatarClass(name))}>
+                      {initials(name)}
+                    </div>
+                    <p className="text-xs font-medium text-gray-900 truncate max-w-[100px]">{name}</p>
+                  </div>
+                );
+              },
+            },
+            {
+              key: 'id',
+              header: 'Actions',
+              render: () => (
+                <button className="h-7 px-3 text-xs font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
+                  Edit
+                </button>
+              ),
+            },
+          ] as Column<Load>[]}
+        />
       </div>
 
       {/* ── Pagination ───────────────────────────────────────── */}
@@ -297,7 +275,10 @@ export default function AdminLoadsPage() {
             >
               <ChevronLeft size={13} />
             </button>
-            {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map((p) => (
+            {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+              const start = Math.max(1, Math.min(page - 2, totalPages - 4));
+              return start + i;
+            }).filter((p) => p >= 1 && p <= totalPages).map((p) => (
               <button
                 key={p}
                 onClick={() => setPage(p)}

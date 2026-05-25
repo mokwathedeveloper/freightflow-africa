@@ -12,6 +12,12 @@ const STATUS_MAP: Record<string, LoadStatus> = {
   '3': 'AWAITING_CONFIRMATION',
 };
 
+const ALLOWED_TRANSITIONS: Partial<Record<LoadStatus, LoadStatus[]>> = {
+  ACCEPTED:   ['PICKED_UP'],
+  PICKED_UP:  ['IN_TRANSIT'],
+  IN_TRANSIT: ['AWAITING_CONFIRMATION'],
+};
+
 const STATUS_DISPLAY: Partial<Record<LoadStatus, string>> = {
   POSTED: 'Posted', ACCEPTED: 'Accepted', PICKED_UP: 'Picked Up',
   IN_TRANSIT: 'In Transit', AWAITING_CONFIRMATION: 'Awaiting Confirmation', DELIVERED: 'Delivered',
@@ -76,10 +82,12 @@ export async function POST(req: NextRequest) {
     if (jobs.length === 1) {
       const job = jobs[0];
       if (level === 1) {
-        return CON(`Update #${job.shortId}\n1. Picked Up\n2. In Transit\n3. Delivered`);
+        return CON(`Update #${job.shortId}\n1. Picked Up\n2. In Transit\n3. Awaiting Conf.`);
       }
       const newStatus = STATUS_MAP[steps[1]];
       if (!newStatus) return END('Invalid option.');
+      const allowed = ALLOWED_TRANSITIONS[job.status] ?? [];
+      if (!allowed.includes(newStatus)) return END('Invalid status transition for this load.');
       await applyStatusUpdate(job.id, newStatus, user.id, sessionId);
       return END(`Status updated: ${newStatus.replace(/_/g, ' ')}\nShipper notified.`);
     }
@@ -92,10 +100,12 @@ export async function POST(req: NextRequest) {
     if (!job) return END('Invalid selection.');
 
     if (level === 2) {
-      return CON(`Update #${job.shortId}\n1. Picked Up\n2. In Transit\n3. Delivered`);
+      return CON(`Update #${job.shortId}\n1. Picked Up\n2. In Transit\n3. Awaiting Conf.`);
     }
     const newStatus = STATUS_MAP[steps[2]];
     if (!newStatus) return END('Invalid option.');
+    const allowed = ALLOWED_TRANSITIONS[job.status] ?? [];
+    if (!allowed.includes(newStatus)) return END('Invalid status transition for this load.');
     await applyStatusUpdate(job.id, newStatus, user.id, sessionId);
     return END(`Status updated: ${newStatus.replace(/_/g, ' ')}\nShipper notified.`);
   }
@@ -132,9 +142,13 @@ async function applyStatusUpdate(loadId: string, status: LoadStatus, userId: str
     include: { shipper: { select: { phone: true } } },
   });
 
-  if (load?.shipper) {
+  if (load?.shipper?.phone) {
     const event = status === 'AWAITING_CONFIRMATION' ? 'DELIVERY_REPORTED'
                 : status === 'PICKED_UP' ? 'CARGO_PICKUP' : 'IN_TRANSIT_UPDATE';
-    sendSMS(load.shipper.phone, event, { loadShortId: load.shortId, checkpoint: load.destination }, loadId);
+    try {
+      await sendSMS(load.shipper.phone, event, { loadShortId: load.shortId, checkpoint: load.destination }, loadId);
+    } catch (err) {
+      console.error('[ussd-sms]', err);
+    }
   }
 }

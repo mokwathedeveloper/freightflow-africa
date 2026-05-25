@@ -12,29 +12,33 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const { id } = await params;
   const transporterId = auth.user.userId;
 
-  const load = await prisma.load.findFirst({
+  // Atomic: only update if still POSTED — prevents double-accept race condition
+  const result = await prisma.load.updateMany({
     where: { id, tenantId: auth.user.tenantId, status: 'POSTED' },
+    data: { transporterId, status: 'ACCEPTED', acceptedAt: new Date() },
   });
 
-  if (!load) {
+  if (result.count === 0) {
     return NextResponse.json({ success: false, error: 'Load is no longer available' }, { status: 409 });
   }
 
-  const [updated] = await prisma.$transaction([
-    prisma.load.update({
-      where: { id },
-      data: { transporterId, status: 'ACCEPTED', acceptedAt: new Date() },
-      include: {
-        shipper: { select: { phone: true } },
-        transporter: { select: { name: true } },
-      },
-    }),
-    prisma.loadStatusLog.create({
-      data: { loadId: id, status: 'ACCEPTED', changedBy: transporterId, channel: 'WEB' },
-    }),
-  ]);
+  await prisma.loadStatusLog.create({
+    data: { loadId: id, status: 'ACCEPTED', changedBy: transporterId, channel: 'WEB' },
+  });
 
-  await sendSMS(
+  const updated = await prisma.load.findUnique({
+    where: { id },
+    include: {
+      shipper: { select: { phone: true } },
+      transporter: { select: { name: true } },
+    },
+  });
+
+  if (!updated) {
+    return NextResponse.json({ success: false, error: 'Load not found after update' }, { status: 500 });
+  }
+
+  sendSMS(
     updated.shipper.phone,
     'LOAD_ACCEPTED',
     {
@@ -45,7 +49,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       trackUrl: `${APP_URL}/dashboard/shipper/track/${id}`,
     },
     id
-  );
+  ).catch((err) => console.error('[accept-sms]', err));
 
   return NextResponse.json({ success: true, data: updated });
 }

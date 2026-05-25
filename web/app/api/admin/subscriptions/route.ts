@@ -13,7 +13,8 @@ export async function GET(req: NextRequest) {
     });
 
     return NextResponse.json({ success: true, data: subscriptions });
-  } catch {
+  } catch (err) {
+    console.error('[admin-subscriptions]', err);
     return NextResponse.json({ success: false, error: 'Failed to fetch subscriptions' }, { status: 500 });
   }
 }
