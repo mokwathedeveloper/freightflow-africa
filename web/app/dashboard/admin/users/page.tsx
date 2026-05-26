@@ -2,27 +2,15 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Users, Search, Plus, UserX, UserCheck, Trash2 } from 'lucide-react';
+import { Users, Search, Plus } from 'lucide-react';
 import { formatDate, cn } from '@/lib/utils';
 import api from '@/lib/api';
 import { useToastStore } from '@/store/toast.store';
-import DataTable, { Column } from '@/components/Table/DataTable';
 import FilterDropdown from '@/components/Filters/FilterDropdown';
 import Modal from '@/components/Modal/Modal';
 import ConfirmModal from '@/components/modals/ConfirmModal';
-
-interface AdminUser {
-  id: string;
-  name: string;
-  email?: string;
-  phone: string;
-  role: 'SHIPPER' | 'TRANSPORTER' | 'ADMIN';
-  company?: string;
-  isVerified: boolean;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt?: string;
-}
+import UserTable from '@/components/tables/UserTable';
+import type { AdminUser } from '@/types';
 
 interface UsersResponse {
   data: { users: AdminUser[]; total: number; page: number; limit: number };
@@ -218,95 +206,6 @@ export default function AdminUsersPage() {
     return matchRole && matchStatus && matchSearch;
   });
 
-  const columns: Column<AdminUser>[] = [
-    {
-      key: 'name',
-      header: 'Name',
-      render: (_, u) => (
-        <div className="flex items-center gap-3">
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 ${avatarBg(u.role)}`}>
-            {u.name.charAt(0).toUpperCase()}
-          </div>
-          <div>
-            <p className="text-sm font-medium text-gray-900">{u.name}</p>
-            <p className="text-xs text-gray-400">{u.email ?? u.phone}</p>
-          </div>
-        </div>
-      ),
-    },
-    {
-      key: 'role',
-      header: 'Role',
-      sortable: true,
-      render: (_, u) => (
-        <span className={cn('text-xs font-medium px-2 py-0.5 rounded-full border', roleBadge(u.role))}>
-          {u.role.charAt(0) + u.role.slice(1).toLowerCase()}
-        </span>
-      ),
-    },
-    {
-      key: 'company',
-      header: 'Company',
-      render: (_, u) => <span className="text-sm text-gray-600">{u.company ?? '—'}</span>,
-    },
-    {
-      key: 'isActive',
-      header: 'Status',
-      sortable: true,
-      render: (_, u) => (
-        <span className={cn('text-xs font-medium px-2 py-0.5 rounded-full', u.isActive ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600')}>
-          {u.isActive ? 'Active' : 'Inactive'}
-        </span>
-      ),
-    },
-    {
-      key: 'createdAt',
-      header: 'Joined',
-      sortable: true,
-      render: (_, u) => (
-        <span className="text-xs text-gray-500">
-          {u.updatedAt ? formatDate(u.updatedAt) : formatDate(u.createdAt)}
-        </span>
-      ),
-    },
-    {
-      key: 'id',
-      header: 'Actions',
-      render: (_, u) => (
-        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-          <button
-            onClick={() => setEditUser(u)}
-            className="text-xs font-medium text-[#1E3A8A] hover:underline px-2 py-1 rounded hover:bg-blue-50 transition-colors"
-          >
-            Edit
-          </button>
-          <button
-            onClick={() => toggleActiveMut.mutate({ id: u.id, isActive: !u.isActive })}
-            disabled={toggleActiveMut.isPending}
-            title={u.isActive ? 'Suspend user' : 'Activate user'}
-            className={cn(
-              'p-1.5 rounded transition-colors disabled:opacity-40',
-              u.isActive
-                ? 'text-amber-600 hover:bg-amber-50'
-                : 'text-green-600 hover:bg-green-50'
-            )}
-          >
-            {u.isActive ? <UserX size={13} /> : <UserCheck size={13} />}
-          </button>
-          {u.role !== 'ADMIN' && (
-            <button
-              onClick={() => setDeleteUser(u)}
-              title="Delete user"
-              className="p-1.5 rounded text-red-500 hover:bg-red-50 transition-colors"
-            >
-              <Trash2 size={13} />
-            </button>
-          )}
-        </div>
-      ),
-    },
-  ];
-
   return (
     <div className="space-y-5">
 
@@ -353,20 +252,13 @@ export default function AdminUsersPage() {
 
       {/* Data table */}
       <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-        {users.length === 0 && !isLoading ? (
-          <div className="py-16 text-center">
-            <Users className="mx-auto text-gray-300 mb-3" size={36} />
-            <p className="text-sm font-medium text-gray-500">No users found</p>
-          </div>
-        ) : (
-          <DataTable<AdminUser>
-            columns={columns}
-            data={users}
-            keyField="id"
-            loading={isLoading}
-            onRowClick={(u) => setEditUser(u)}
-          />
-        )}
+        <UserTable
+          users={users}
+          loading={isLoading}
+          onEdit={setEditUser}
+          onToggleActive={(u) => toggleActiveMut.mutate({ id: u.id, isActive: !u.isActive })}
+          onDelete={setDeleteUser}
+        />
       </div>
 
       {/* Edit user modal */}

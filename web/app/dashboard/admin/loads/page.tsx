@@ -11,7 +11,8 @@ import { formatDate, cn } from '@/lib/utils';
 import api from '@/lib/api';
 import { useToastStore } from '@/store/toast.store';
 import type { Load } from '@/types';
-import DataTable, { Column } from '@/components/Table/DataTable';
+import LoadTable from '@/components/tables/LoadTable';
+import StatusBadge from '@/components/status/StatusBadge';
 import FilterDropdown, { FilterOption } from '@/components/Filters/FilterDropdown';
 import Modal from '@/components/Modal/Modal';
 import ConfirmModal from '@/components/modals/ConfirmModal';
@@ -145,9 +146,7 @@ function LoadDetailModal({ load, onClose }: { load: Load; onClose: () => void })
         <span className="font-mono text-sm font-semibold text-gray-800 bg-gray-100 px-2.5 py-1 rounded">
           {load.shortId}
         </span>
-        <span className={cn('text-xs font-medium px-2.5 py-1 rounded-full border', statusBadge(load.status))}>
-          {statusLabel(load.status)}
-        </span>
+        <StatusBadge status={load.status} size="md" />
       </div>
 
       {/* Route */}
@@ -273,98 +272,6 @@ export default function AdminLoadsPage() {
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paged      = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  const columns: Column<Load>[] = [
-    {
-      key: 'shortId',
-      header: 'Load ID',
-      render: (_, l) => (
-        <span className="font-mono text-xs font-medium text-gray-800 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded">
-          {l.shortId}
-        </span>
-      ),
-    },
-    {
-      key: 'shipperId',
-      header: 'Shipper',
-      render: (_, l) => {
-        const name = l.shipper?.company || l.shipper?.name || 'Unknown';
-        return (
-          <div className="flex items-center gap-2.5">
-            <div className={cn('w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0', avatarClass(name))}>
-              {initials(name)}
-            </div>
-            <p className="text-xs font-semibold text-gray-900 truncate max-w-[110px]">{name}</p>
-          </div>
-        );
-      },
-    },
-    {
-      key: 'origin',
-      header: 'Route',
-      sortable: true,
-      render: (_, l) => (
-        <>
-          <p className="text-xs font-medium text-gray-900">{l.origin}</p>
-          <p className="text-xs text-gray-400 mt-0.5">→ {l.destination}</p>
-        </>
-      ),
-    },
-    {
-      key: 'cargoType',
-      header: 'Cargo Type',
-      sortable: true,
-      render: (_, l) => <span className="text-xs text-gray-600">{l.cargoType}</span>,
-    },
-    {
-      key: 'deliveryDate',
-      header: 'Date Range',
-      sortable: true,
-      render: (_, l) => (
-        <>
-          <p className="text-xs text-gray-600">{formatDate(l.createdAt)}</p>
-          <p className="text-xs text-gray-400 mt-0.5">→ {formatDate(l.deliveryDate)}</p>
-        </>
-      ),
-    },
-    {
-      key: 'status',
-      header: 'Status',
-      sortable: true,
-      render: (_, l) => (
-        <span className={cn('inline-flex text-xs font-medium px-2 py-0.5 rounded-full border', statusBadge(l.status))}>
-          {statusLabel(l.status)}
-        </span>
-      ),
-    },
-    {
-      key: 'transporterId',
-      header: 'Transporter',
-      render: (_, l) => {
-        const name = l.transporter?.name;
-        if (!name) return <span className="text-xs text-gray-400 italic">Unassigned</span>;
-        return (
-          <div className="flex items-center gap-2">
-            <div className={cn('w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0', avatarClass(name))}>
-              {initials(name)}
-            </div>
-            <p className="text-xs font-medium text-gray-900 truncate max-w-[100px]">{name}</p>
-          </div>
-        );
-      },
-    },
-    {
-      key: 'id',
-      header: 'Actions',
-      render: (_, l) => (
-        <button
-          onClick={(e) => { e.stopPropagation(); setSelectedLoad(l); }}
-          className="h-7 px-3 text-xs font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
-        >
-          View
-        </button>
-      ),
-    },
-  ];
 
   return (
     <div className="space-y-5">
@@ -411,22 +318,12 @@ export default function AdminLoadsPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        {filtered.length === 0 && !isLoading ? (
-          <div className="py-16 text-center">
-            <Package className="mx-auto text-gray-300 mb-3" size={36} />
-            <p className="text-sm font-medium text-gray-500">No loads found</p>
-            <p className="text-xs text-gray-400 mt-1">Try adjusting the search or filters.</p>
-          </div>
-        ) : (
-          <DataTable<Load>
-            keyField="id"
-            loading={isLoading}
-            data={paged}
-            columns={columns}
-            onRowClick={(l) => setSelectedLoad(l)}
-          />
-        )}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-5">
+        <LoadTable
+          loads={paged}
+          loading={isLoading}
+          onRowClick={(l) => setSelectedLoad(l)}
+        />
       </div>
 
       {/* Pagination */}

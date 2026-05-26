@@ -5,17 +5,8 @@ import { Check, CreditCard, Plus, Loader2, ArrowUpRight } from 'lucide-react';
 import { formatDate, cn } from '@/lib/utils';
 import api from '@/lib/api';
 import { useToastStore } from '@/store/toast.store';
-import DataTable, { Column } from '@/components/Table/DataTable';
-
-interface BillingRecord {
-  id: string;
-  description: string;
-  amount: number;
-  currency: string;
-  status: 'PAID' | 'PENDING' | 'FAILED';
-  date: string;
-  invoiceUrl?: string;
-}
+import SubscriptionTable from '@/components/tables/SubscriptionTable';
+import type { BillingRecord } from '@/types';
 
 interface BillingResponse {
   data: {
@@ -198,64 +189,7 @@ export default function AdminSubscriptionsPage() {
             <h3 className="text-sm font-semibold text-gray-900">Billing &amp; Invoices</h3>
           </div>
 
-          <DataTable<BillingRecord>
-            columns={[
-              {
-                key: 'date',
-                header: 'Date',
-                sortable: true,
-                render: (_, r) => (
-                  <span className="text-xs text-gray-600">{formatDate(r.date)}</span>
-                ),
-              },
-              {
-                key: 'description',
-                header: 'Description',
-                render: (_, r) => (
-                  <span className="text-xs text-gray-600">{r.description}</span>
-                ),
-              },
-              {
-                key: 'amount',
-                header: 'Amount',
-                sortable: true,
-                render: (_, r) => (
-                  <span className="text-xs font-semibold text-gray-900">
-                    {r.currency} {r.amount.toLocaleString()}
-                  </span>
-                ),
-              },
-              {
-                key: 'status',
-                header: 'Status',
-                sortable: true,
-                render: (_, r) => (
-                  <span className={cn('text-xs font-medium px-2 py-0.5 rounded-full', statusBadge(r.status))}>
-                    {r.status}
-                  </span>
-                ),
-              },
-              {
-                key: 'invoiceUrl' as keyof BillingRecord,
-                header: 'Invoice',
-                render: (_, r) =>
-                  r.invoiceUrl ? (
-                    <a
-                      href={r.invoiceUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-[#1E3A8A] hover:underline"
-                    >
-                      View
-                    </a>
-                  ) : null,
-              },
-            ] as Column<BillingRecord>[]}
-            data={history}
-            keyField="id"
-            loading={isLoading}
-            emptyMessage="No billing records yet."
-          />
+          <SubscriptionTable records={history} loading={isLoading} />
         </div>
 
         {/* Payment Methods */}
