@@ -3,13 +3,14 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  CreditCard, CheckCircle, Loader2, Download, AlertCircle,
+  CreditCard, CheckCircle, Loader2, AlertCircle,
   Zap, Shield, Star, ArrowUpRight,
 } from 'lucide-react';
 import { formatDate, cn } from '@/lib/utils';
 import api from '@/lib/api';
 import { useToastStore } from '@/store/toast.store';
-import DataTable, { Column } from '@/components/Table/DataTable';
+import SubscriptionTable from '@/components/tables/SubscriptionTable';
+import type { BillingRecord } from '@/types';
 
 interface Plan {
   id: string;
@@ -19,16 +20,6 @@ interface Plan {
   interval: string;
   features: string[];
   isCurrent: boolean;
-}
-
-interface BillingRecord {
-  id: string;
-  description: string;
-  amount: number;
-  currency: string;
-  status: 'PAID' | 'PENDING' | 'FAILED';
-  date: string;
-  invoiceUrl?: string;
 }
 
 interface BillingResponse {
@@ -259,85 +250,12 @@ export default function BillingPage() {
       </div>
 
       {/* Billing history */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-6">
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-gray-900">Billing History</h3>
         </div>
 
-        {isLoading ? (
-          <div className="divide-y divide-gray-100">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="px-5 py-4 flex items-center gap-4 animate-pulse">
-                <div className="h-3 bg-gray-100 rounded w-32" />
-                <div className="h-3 bg-gray-100 rounded flex-1" />
-                <div className="h-5 bg-gray-100 rounded w-16" />
-              </div>
-            ))}
-          </div>
-        ) : history.length === 0 ? (
-          <div className="py-12 text-center">
-            <CreditCard className="mx-auto text-gray-300 mb-3" size={28} />
-            <p className="text-sm text-gray-500">No billing records yet</p>
-            <p className="text-xs text-gray-400 mt-1">Your invoices will appear here after your first charge.</p>
-          </div>
-        ) : (
-          <DataTable<BillingRecord>
-            columns={[
-              {
-                key: 'date',
-                header: 'Date',
-                sortable: true,
-                render: (_, r) => (
-                  <span className="text-xs text-gray-500">{formatDate(r.date)}</span>
-                ),
-              },
-              {
-                key: 'description',
-                header: 'Description',
-                render: (_, r) => (
-                  <span className="text-sm text-gray-700">{r.description}</span>
-                ),
-              },
-              {
-                key: 'amount',
-                header: 'Amount',
-                sortable: true,
-                render: (_, r) => (
-                  <span className="text-sm font-medium text-gray-900">
-                    {r.currency} {r.amount.toLocaleString()}
-                  </span>
-                ),
-              },
-              {
-                key: 'status',
-                header: 'Status',
-                sortable: true,
-                render: (_, r) => (
-                  <span className={cn('text-xs font-medium px-2 py-0.5 rounded-full border', statusBadge(r.status))}>
-                    {r.status}
-                  </span>
-                ),
-              },
-              {
-                key: 'invoiceUrl' as keyof BillingRecord,
-                header: '',
-                render: (_, r) =>
-                  r.invoiceUrl ? (
-                    <a
-                      href={r.invoiceUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-xs text-[#1E3A8A] hover:underline"
-                    >
-                      <Download size={12} /> Invoice
-                    </a>
-                  ) : null,
-              },
-            ] as Column<BillingRecord>[]}
-            data={history}
-            keyField="id"
-          />
-        )}
+        <SubscriptionTable records={history} loading={isLoading} />
       </div>
     </div>
   );
